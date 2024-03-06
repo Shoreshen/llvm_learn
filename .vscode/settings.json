@@ -1,5 +1,10 @@
 {
     "files.associations": {
-        "*.inc": "cpp"
+        "*.inc": "cpp",
+        "*.def": "cpp",
+        "__locale": "cpp",
+        "locale": "cpp",
+        "*.tcc": "cpp",
+        "format": "cpp"
     }
 }
