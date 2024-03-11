@@ -12,9 +12,9 @@ sync: sub_pull commit
 PHONY += commit sync sub_pull
 # build ==================================================================================
 config_clang:
-	cd llvm-project && cmake -G 'Unix Makefiles' -S llvm -B build -DCMAKE_INSTALL_PREFIX=../bin -DCMAKE_BUILD_TYPE=Debug -DLLVM_ENABLE_PROJECTS='clang;lld' -DLLVM_TARGETS_TO_BUILD=X86
+	cd llvm-project && cmake -G Ninja -S llvm -B build -DCMAKE_INSTALL_PREFIX=../bin -DCMAKE_BUILD_TYPE=Debug -DLLVM_ENABLE_PROJECTS='clang;lld' -DLLVM_TARGETS_TO_BUILD=X86 -DLLVM_PARALLEL_COMPILE_JOBS=16 -DLLVM_PARALLEL_LINK_JOBS=3
 build_clang:
-	cd llvm-project/build && make
+	cd llvm-project/build && ninja
 
 PHONY += build_clang config_clang
 # build ==================================================================================
