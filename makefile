@@ -17,9 +17,13 @@ build_clang:
 	cd llvm-project/build && ninja
 
 PHONY += build_clang config_clang
-# build ==================================================================================
+# test ===================================================================================
+view_dag:
+	clang -S -emit-llvm ./test/mytest.c -o mytest.ll -O3
+	./llvm-project/build/bin/llc -view-dag-combine1-dags mytest.ll
+# clean ==================================================================================
 clean:
-	-rm *.bc
+	-rm *.bc *.ll *.s *.out
 
 PHONY += clean
 # ========================================================================================
