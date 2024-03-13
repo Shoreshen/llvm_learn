@@ -84,5 +84,9 @@ if __name__ == "__main__":
         save()
     elif sys.argv[1] == 'restore':
         restore()
+    elif sys.argv[1] == 'save_modify':
+        save_modify()
+    elif sys.argv[1] == 'restore_modify':
+        restore_modify()
     else:
         print(f"Invalid argument: {arg}. Expected 'save' or 'restore'.")
