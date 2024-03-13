@@ -1,0 +1,176 @@
+diff --git a/llvm/CMakeLists.txt b/llvm/CMakeLists.txt
+index bd141619d03f..c1f4985b2ac9 100644
+--- a/llvm/CMakeLists.txt
++++ b/llvm/CMakeLists.txt
+@@ -475,6 +475,7 @@ set(LLVM_ALL_TARGETS
+   WebAssembly
+   X86
+   XCore
++  Cpu0
+   )
+ 
+ set(LLVM_ALL_EXPERIMENTAL_TARGETS
+diff --git a/llvm/cmake/config-ix.cmake b/llvm/cmake/config-ix.cmake
+index bf1b110245bb..7891ef0aea92 100644
+--- a/llvm/cmake/config-ix.cmake
++++ b/llvm/cmake/config-ix.cmake
+@@ -505,6 +505,8 @@ elseif (LLVM_NATIVE_ARCH STREQUAL "m68k")
+   set(LLVM_NATIVE_ARCH M68k)
+ elseif (LLVM_NATIVE_ARCH MATCHES "loongarch")
+   set(LLVM_NATIVE_ARCH LoongArch)
++elseif (LLVM_NATIVE_ARCH MATCHES "cpu0")
++  set(LLVM_NATIVE_ARCH Cpu0)
+ else ()
+   message(FATAL_ERROR "Unknown architecture ${LLVM_NATIVE_ARCH}")
+ endif ()
+diff --git a/llvm/include/llvm/BinaryFormat/ELF.h b/llvm/include/llvm/BinaryFormat/ELF.h
+index bace3a92677a..f1611b75601e 100644
+--- a/llvm/include/llvm/BinaryFormat/ELF.h
++++ b/llvm/include/llvm/BinaryFormat/ELF.h
+@@ -320,6 +320,7 @@ enum {
+   EM_VE = 251,            // NEC SX-Aurora VE
+   EM_CSKY = 252,          // C-SKY 32-bit processor
+   EM_LOONGARCH = 258,     // LoongArch
++  EM_CPU0 = 999           // CPU0
+ };
+ 
+ // Object file classes.
+@@ -975,6 +976,19 @@ enum {
+ #include "ELFRelocs/CSKY.def"
+ };
+ 
++// Cpu0 Specific e_flags
++enum {
++  EF_CPU0_NOREORDER = 0x00000001, // Don't reorder instructions
++  EF_CPU0_PIC       = 0x00000002, // Position independent code
++  EF_CPU0_ARCH_32   = 0x50000000, // CPU032 instruction set per linux not elf.h
++  EF_CPU0_ARCH      = 0xf0000000  // Mask for applying EF_CPU0_ARCH_ variant
++};
++
++// ELF Relocation types for Mips
++enum {
++#include "ELFRelocs/Cpu0.def"
++};
++
+ // LoongArch Specific e_flags
+ enum : unsigned {
+   // Definitions from LoongArch ELF psABI v2.01.
+diff --git a/llvm/include/llvm/Object/ELFObjectFile.h b/llvm/include/llvm/Object/ELFObjectFile.h
+index c9227da65708..d611dfcdaeb5 100644
+--- a/llvm/include/llvm/Object/ELFObjectFile.h
++++ b/llvm/include/llvm/Object/ELFObjectFile.h
+@@ -1252,6 +1252,8 @@ StringRef ELFObjectFile<ELFT>::getFileFormatName() const {
+       return "elf32-loongarch";
+     case ELF::EM_XTENSA:
+       return "elf32-xtensa";
++    case ELF::EM_CPU0:        // 32bit ELF format name for CPU0
++      return "ELF32-cpu0";
+     default:
+       return "elf32-unknown";
+     }
+@@ -1384,6 +1386,8 @@ template <class ELFT> Triple::ArchType ELFObjectFile<ELFT>::getArch() const {
+ 
+   case ELF::EM_XTENSA:
+     return Triple::xtensa;
++  case ELF::EM_CPU0:        // get arch Triple for CPU0
++    return Triple::cpu0;
+ 
+   default:
+     return Triple::UnknownArch;
+diff --git a/llvm/include/llvm/TargetParser/Triple.h b/llvm/include/llvm/TargetParser/Triple.h
+index f256e2b205a8..5bd6973c4aa7 100644
+--- a/llvm/include/llvm/TargetParser/Triple.h
++++ b/llvm/include/llvm/TargetParser/Triple.h
+@@ -65,6 +65,7 @@ public:
+     mipsel,         // MIPSEL: mipsel, mipsallegrexe, mipsr6el
+     mips64,         // MIPS64: mips64, mips64r6, mipsn32, mipsn32r6
+     mips64el,       // MIPS64EL: mips64el, mips64r6el, mipsn32el, mipsn32r6el
++    cpu0,           // For Tutorial Backend Cpu0
+     msp430,         // MSP430: msp430
+     ppc,            // PPC: powerpc
+     ppcle,          // PPCLE: powerpc (little endian)
+diff --git a/llvm/lib/TargetParser/Triple.cpp b/llvm/lib/TargetParser/Triple.cpp
+index 624679ff507a..836536e453b8 100644
+--- a/llvm/lib/TargetParser/Triple.cpp
++++ b/llvm/lib/TargetParser/Triple.cpp
+@@ -72,6 +72,7 @@ StringRef Triple::getArchTypeName(ArchType Kind) {
+   case spir64:         return "spir64";
+   case spir:           return "spir";
+   case spirv:          return "spirv";
++  case cpu0:           return "cpu0"; // Arch type name for CPU0
+   case spirv32:        return "spirv32";
+   case spirv64:        return "spirv64";
+   case systemz:        return "s390x";
+@@ -164,7 +165,7 @@ StringRef Triple::getArchTypePrefix(ArchType Kind) {
+   case sparc:       return "sparc";
+ 
+   case systemz:     return "s390";
+-
++  case cpu0:        return "cpu0"; // Arch type prefix for CPU0
+   case x86:
+   case x86_64:      return "x86";
+ 
+@@ -427,6 +428,7 @@ Triple::ArchType Triple::getArchTypeForLLVMName(StringRef Name) {
+     .Case("renderscript64", renderscript64)
+     .Case("ve", ve)
+     .Case("csky", csky)
++    .Case("cpu0", cpu0)         // Arch type for LLVM name for CPU0
+     .Case("loongarch32", loongarch32)
+     .Case("loongarch64", loongarch64)
+     .Case("dxil", dxil)
+@@ -569,6 +571,7 @@ static Triple::ArchType parseArch(StringRef ArchName) {
+     .Case("ve", Triple::ve)
+     .Case("wasm32", Triple::wasm32)
+     .Case("wasm64", Triple::wasm64)
++    .Case("cpu0", Triple::cpu0) // string to triple for CPU0
+     .Case("csky", Triple::csky)
+     .Case("loongarch32", Triple::loongarch32)
+     .Case("loongarch64", Triple::loongarch64)
+@@ -860,6 +863,7 @@ static Triple::ObjectFormatType getDefaultFormat(const Triple &T) {
+   case Triple::hexagon:
+   case Triple::hsail64:
+   case Triple::hsail:
++  case Triple::cpu0:        // Default format to CPU0 is ELF
+   case Triple::kalimba:
+   case Triple::lanai:
+   case Triple::le32:
+@@ -1502,6 +1506,7 @@ unsigned Triple::getArchPointerBitWidth(llvm::Triple::ArchType Arch) {
+   case llvm::Triple::thumbeb:
+   case llvm::Triple::wasm32:
+   case llvm::Triple::x86:
++  case llvm::Triple::cpu0:         // CPU0's pointer width is 32 bits.
+   case llvm::Triple::xcore:
+   case llvm::Triple::xtensa:
+     return 32;
+@@ -1585,6 +1590,7 @@ Triple Triple::get32BitArchVariant() const {
+   case Triple::riscv32:
+   case Triple::shave:
+   case Triple::sparc:
++  case Triple::cpu0:        // CPU0 is 32-bit.
+   case Triple::sparcel:
+   case Triple::spir:
+   case Triple::spirv32:
+@@ -1642,6 +1648,7 @@ Triple Triple::get64BitArchVariant() const {
+   case Triple::m68k:
+   case Triple::msp430:
+   case Triple::r600:
++  case Triple::cpu0:  // cpu0 has not 64-bit arch.
+   case Triple::shave:
+   case Triple::sparcel:
+   case Triple::tce:
+@@ -1751,6 +1758,7 @@ Triple Triple::getBigEndianArchVariant() const {
+   case Triple::ve:
+   case Triple::csky:
+   case Triple::xtensa:
++  case Triple::cpu0:    // CPU0 is not big endian.
+ 
+   // ARM is intentionally unsupported here, changing the architecture would
+   // drop any arch suffixes.
+@@ -1862,6 +1870,7 @@ bool Triple::isLittleEndian() const {
+   case Triple::x86_64:
+   case Triple::xcore:
+   case Triple::xtensa:
++  case Triple::cpu0:    // CPU0 is little endian.
+     return true;
+   default:
+     return false;
