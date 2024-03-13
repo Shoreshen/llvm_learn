@@ -10,7 +10,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/llvm-project/build/bin/llc",
             "args": [
-                "-view-dag-combine1-dags", "mytest.ll"
+                "-debug", "mytest.ll"
             ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",

@@ -12,7 +12,13 @@ LLVM的基本流程如下
 
 <img src="pic/fileflow.drawio.png">
 
-# 代码生成
+# Backend CodeGen
+
+## Setting up
+
+### Files to modify
+
+1. `llvm/include/llvm/ADT/Triple.h`
 
 ## Tablegen
 

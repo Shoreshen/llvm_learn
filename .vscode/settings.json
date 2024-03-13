@@ -5,6 +5,7 @@
         "__locale": "cpp",
         "locale": "cpp",
         "*.tcc": "cpp",
-        "format": "cpp"
+        "format": "cpp",
+        "type_traits": "cpp"
     }
 }
