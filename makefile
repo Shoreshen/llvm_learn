@@ -20,8 +20,12 @@ build_clang:
 	cd llvm-project/build && ninja
 save_change:
 	python handle_change.py save
+save_modify:
+	python handle_change.py save_modify
 restore_change:
 	python handle_change.py restore
+restore_modify:
+	python handle_change.py restore_modify
 
 PHONY += build_clang config_clang save_change restore_change
 # test ===================================================================================
