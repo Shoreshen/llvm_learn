@@ -6,6 +6,25 @@
         "locale": "cpp",
         "*.tcc": "cpp",
         "format": "cpp",
-        "type_traits": "cpp"
+        "type_traits": "cpp",
+        "cstdint": "cpp",
+        "string": "cpp",
+        "cstddef": "cpp",
+        "__hash_table": "cpp",
+        "__node_handle": "cpp",
+        "iterator": "cpp",
+        "initializer_list": "cpp",
+        "limits": "cpp",
+        "new": "cpp",
+        "optional": "cpp",
+        "ratio": "cpp",
+        "tuple": "cpp",
+        "typeinfo": "cpp",
+        "unordered_map": "cpp",
+        "algorithm": "cpp",
+        "atomic": "cpp",
+        "exception": "cpp",
+        "stdexcept": "cpp",
+        "utility": "cpp"
     }
 }

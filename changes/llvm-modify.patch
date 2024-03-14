@@ -1,8 +1,8 @@
 diff --git a/llvm/CMakeLists.txt b/llvm/CMakeLists.txt
-index bd141619d03f..c1f4985b2ac9 100644
+index 6f5647d70d8b..1e73424c1421 100644
 --- a/llvm/CMakeLists.txt
 +++ b/llvm/CMakeLists.txt
-@@ -475,6 +475,7 @@ set(LLVM_ALL_TARGETS
+@@ -487,6 +487,7 @@ set(LLVM_ALL_TARGETS
    WebAssembly
    X86
    XCore
@@ -89,6 +89,24 @@ index f256e2b205a8..5bd6973c4aa7 100644
      msp430,         // MSP430: msp430
      ppc,            // PPC: powerpc
      ppcle,          // PPCLE: powerpc (little endian)
+diff --git a/llvm/lib/Object/ELF.cpp b/llvm/lib/Object/ELF.cpp
+index 137f606dd2d4..b6ba28573122 100644
+--- a/llvm/lib/Object/ELF.cpp
++++ b/llvm/lib/Object/ELF.cpp
+@@ -181,6 +181,13 @@ StringRef llvm::object::getELFRelocationTypeName(uint32_t Machine,
+       break;
+     }
+     break;
++  case ELF::EM_CPU0:
++    switch (Type) {
++#include "llvm/BinaryFormat/ELFRelocs/Cpu0.def"
++    default:
++      break;
++    }
++    break;
+   default:
+     break;
+   }
 diff --git a/llvm/lib/TargetParser/Triple.cpp b/llvm/lib/TargetParser/Triple.cpp
 index 624679ff507a..836536e453b8 100644
 --- a/llvm/lib/TargetParser/Triple.cpp

@@ -1,1 +1,2 @@
 llvm/include/llvm/BinaryFormat/ELFRelocs/Cpu0.def
+llvm/lib/Target/cpu0/

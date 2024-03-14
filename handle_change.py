@@ -3,8 +3,8 @@ import subprocess
 import shutil
 import sys
 
-destination_dir = './cpu0/changes/'
-new_files_dir = './cpu0/changes/new_files_dir'
+destination_dir = './changes/'
+new_files_dir = './changes/new_files_dir'
 
 def run_command(command):
     process = subprocess.Popen(command, stdout=subprocess.PIPE, shell=True)
@@ -38,9 +38,9 @@ def save_modify():
     diff_output = run_command("cd llvm-project/ && git diff")
     if diff_output:
         print(diff_output)
-        user_input = input("Do you want to overwrite /cpu0/changes/llvm-modify.patch? (y/n): ")
+        user_input = input("Do you want to overwrite llvm-modify.patch? (y/n): ")
         if user_input.lower() == 'y':
-            with open('cpu0/changes/llvm-modify.patch', 'w') as f:
+            with open(destination_dir + '/llvm-modify.patch', 'w') as f:
                 f.write(diff_output + '\n')
     else:
         print("No changes to save.")
@@ -58,11 +58,17 @@ def restore_new():
         for line in f:
             file = line.strip()  # 去除行尾的换行符
             if file:  # 防止空字符串
-                # 将文件从destination_dir复制回llvm-project目录
-                shutil.move(os.path.join(destination_dir, os.path.basename(file)), os.path.join('llvm-project', file))
+                if file.endswith('/'):
+                    shutil.move(
+                        os.path.join(destination_dir, os.path.basename(file.rstrip('/'))), 
+                        os.path.join('llvm-project', os.path.dirname(file.rstrip('/')))
+                    )
+                else:
+                    # 将文件从destination_dir复制回llvm-project目录
+                    shutil.move(os.path.join(destination_dir, os.path.basename(file)), os.path.join('llvm-project', file))
 
 def restore_modify():
-    run_command("cd llvm-project/ && git apply ../cpu0/changes/llvm-modify.patch")
+    run_command("cd llvm-project/ && git apply ../changes/llvm-modify.patch")
 
 def restore():
     restore_modify()
