@@ -18,7 +18,7 @@ def Cpu0InstrInfo : InstrInfo;
 //===----------------------------------------------------------------------===//
 // Cpu0 processors supported.
 //===----------------------------------------------------------------------===//
-
+def : ProcessorModel<"generic",  NoSchedModel, []>;
 // Will generate Cpu0GenAsmWrite.inc included by Cpu0InstPrinter.cpp, contents 
 //  as follows,
 // void Cpu0InstPrinter::printInstruction(const MCInst *MI, raw_ostream &O) {...}
