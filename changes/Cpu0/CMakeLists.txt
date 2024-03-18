@@ -1,6 +1,6 @@
 add_llvm_component_group(Cpu0)
 
-set(LLVM_TARGET_DEFINITIONS Cpu0Other.td)
+set(LLVM_TARGET_DEFINITIONS Cpu0.td)
 
 # Generate Cpu0GenRegisterInfo.inc and Cpu0GenInstrInfo.inc which included by 
 #  your hand code C++ files. 

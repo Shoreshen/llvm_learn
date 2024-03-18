@@ -1,4 +1,4 @@
-//===-- Cpu0.td - Describe the Cpu0 Target Machine ---------*- tablegen -*-===//
+//===-- Cpu0Other.td - Describe the Cpu0 Target Machine ----*- tablegen -*-===//
 //
 //                     The LLVM Compiler Infrastructure
 //
@@ -6,19 +6,35 @@
 // License. See LICENSE.TXT for details.
 //
 //===----------------------------------------------------------------------===//
-
-//===----------------------------------------------------------------------===//
-// Calling Conv, Instruction Descriptions
+// This is the top level entry point for the Cpu0 target.
 //===----------------------------------------------------------------------===//
 
+//===----------------------------------------------------------------------===//
+// Target-independent interfaces
+//===----------------------------------------------------------------------===//
+
+include "llvm/Target/Target.td"
+
+//===----------------------------------------------------------------------===//
+// Calling Conv, Instruction Descriptions, Register information, etc
+//===----------------------------------------------------------------------===//
+
+include "Cpu0RegisterInfo.td"
 include "Cpu0Schedule.td"
 include "Cpu0InstrInfo.td"
 
-def Cpu0InstrInfo : InstrInfo;
 //===----------------------------------------------------------------------===//
 // Cpu0 processors supported.
 //===----------------------------------------------------------------------===//
 def : ProcessorModel<"generic",  NoSchedModel, []>;
+
+
+//===----------------------------------------------------------------------===//
+// Cpu0 processors supported.
+//===----------------------------------------------------------------------===//
+def Cpu0InstrInfo : InstrInfo {
+    let isLittleEndianEncoding = 1;
+}
 // Will generate Cpu0GenAsmWrite.inc included by Cpu0InstPrinter.cpp, contents 
 //  as follows,
 // void Cpu0InstPrinter::printInstruction(const MCInst *MI, raw_ostream &O) {...}

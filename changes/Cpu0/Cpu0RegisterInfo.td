@@ -15,66 +15,41 @@
 class Cpu0Reg<bits<16> Enc, string n> : Register<n> {
   // For tablegen(... -gen-emitter)  in CMakeLists.txt
   let HWEncoding = Enc;
-  
   let Namespace = "Cpu0";
 }
 
-// Cpu0 CPU Registers
-class Cpu0GPRReg<bits<16> Enc, string n> : Cpu0Reg<Enc, n>;
+def ZERO : Cpu0Reg<0,  "zero">, DwarfRegNum<[0]>;   // Constant register, value is 0
+def AT   : Cpu0Reg<1,  "1">,    DwarfRegNum<[1]>;   // General-purpose registers
+def V0   : Cpu0Reg<2,  "2">,    DwarfRegNum<[2]>;   // General-purpose registers
+def V1   : Cpu0Reg<3,  "3">,    DwarfRegNum<[3]>;   // General-purpose registers
+def A0   : Cpu0Reg<4,  "4">,    DwarfRegNum<[4]>;   // General-purpose registers
+def A1   : Cpu0Reg<5,  "5">,    DwarfRegNum<[5]>;   // General-purpose registers
+def T9   : Cpu0Reg<6,  "t9">,   DwarfRegNum<[6]>;   // General-purpose registers
+def T0   : Cpu0Reg<7,  "7">,    DwarfRegNum<[7]>;   // General-purpose registers
+def T1   : Cpu0Reg<8,  "8">,    DwarfRegNum<[8]>;   // General-purpose registers
+def S0   : Cpu0Reg<9,  "9">,    DwarfRegNum<[9]>;   // General-purpose registers
+def S1   : Cpu0Reg<10, "10">,   DwarfRegNum<[10]>;  // General-purpose registers
+def GP   : Cpu0Reg<11, "gp">,   DwarfRegNum<[11]>;  // Global pointer
+def FP   : Cpu0Reg<12, "fp">,   DwarfRegNum<[12]>;  // Frame pointer
+def SP   : Cpu0Reg<13, "sp">,   DwarfRegNum<[13]>;  // Stack pointer
+def LR   : Cpu0Reg<14, "lr">,   DwarfRegNum<[14]>;  // Link register
+def SW   : Cpu0Reg<15, "sw">,   DwarfRegNum<[15]>;  // Status Word
 
-// Co-processor 0 Registers
-class Cpu0C0Reg<bits<16> Enc, string n> : Cpu0Reg<Enc, n>;
+def PC   : Cpu0Reg<0, "pc">,  DwarfRegNum<[20]>;    // Program Counter
+def EPC  : Cpu0Reg<1, "epc">, DwarfRegNum<[21]>;    // Error Program Counter
 
-//===----------------------------------------------------------------------===//
-//@Registers
-//===----------------------------------------------------------------------===//
-// The register string, such as "9" or "gp" will show on "llvm-objdump -d"
-//@ All registers definition
-let Namespace = "Cpu0" in {
-  //@ General Purpose Registers
-  def ZERO : Cpu0GPRReg<0,  "zero">, DwarfRegNum<[0]>;
-  def AT   : Cpu0GPRReg<1,  "1">,    DwarfRegNum<[1]>;
-  def V0   : Cpu0GPRReg<2,  "2">,    DwarfRegNum<[2]>;
-  def V1   : Cpu0GPRReg<3,  "3">,    DwarfRegNum<[3]>;
-  def A0   : Cpu0GPRReg<4,  "4">,    DwarfRegNum<[4]>;
-  def A1   : Cpu0GPRReg<5,  "5">,    DwarfRegNum<[5]>;
-  def T9   : Cpu0GPRReg<6,  "t9">,   DwarfRegNum<[6]>;
-  def T0   : Cpu0GPRReg<7,  "7">,    DwarfRegNum<[7]>;
-  def T1   : Cpu0GPRReg<8,  "8">,    DwarfRegNum<[8]>;
-  def S0   : Cpu0GPRReg<9,  "9">,    DwarfRegNum<[9]>;
-  def S1   : Cpu0GPRReg<10, "10">,   DwarfRegNum<[10]>;
-  def GP   : Cpu0GPRReg<11, "gp">,   DwarfRegNum<[11]>;
-  def FP   : Cpu0GPRReg<12, "fp">,   DwarfRegNum<[12]>;
-  def SP   : Cpu0GPRReg<13, "sp">,   DwarfRegNum<[13]>;
-  def LR   : Cpu0GPRReg<14, "lr">,   DwarfRegNum<[14]>;
-  def SW   : Cpu0GPRReg<15, "sw">,   DwarfRegNum<[15]>;
-//  def MAR  : Register< 16, "mar">,  DwarfRegNum<[16]>;
-//  def MDR  : Register< 17, "mdr">,  DwarfRegNum<[17]>;
-
-  def PC   : Cpu0C0Reg<0, "pc">,  DwarfRegNum<[20]>;
-  def EPC  : Cpu0C0Reg<1, "epc">, DwarfRegNum<[21]>;
-}
 
 //===----------------------------------------------------------------------===//
 //@Register Classes
 //===----------------------------------------------------------------------===//
 
-def CPURegs : RegisterClass<"Cpu0", [i32], 32, (add
-  // Reserved
-  ZERO, AT, 
-  // Return Values and Arguments
-  V0, V1, A0, A1, 
-  // Not preserved across procedure calls
-  T9, T0, T1,
-  // Callee save
-  S0, S1,
-  // Reserved
-  GP, FP, 
-  SP, LR, SW)>;
-
-//@Status Registers class
-def SR     : RegisterClass<"Cpu0", [i32], 32, (add SW)>;
+def CPURegs : RegisterClass<
+    "Cpu0", [i32], 32, 
+    (add ZERO, AT, V0, V1, A0, A1, T9, T0, T1, S0, S1, GP, FP, SP, LR, SW)
+>;
 
 //@Co-processor 0 Registers class
 def C0Regs : RegisterClass<"Cpu0", [i32], 32, (add PC, EPC)>;
+// General purpose registers
+def GPROut : RegisterClass<"Cpu0", [i32], 32, (add CPURegs, SW)>;
 
