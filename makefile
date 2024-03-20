@@ -33,7 +33,7 @@ PHONY += build config_clang config_cpu0 save_change restore_change
 # test ===================================================================================
 view_dag:
 	clang -S -emit-llvm ./test/mytest.c -o mytest.ll -O3
-	./llvm-project/build/bin/llc -view-dag-combine1-dags mytest.ll
+	./llvm-project/build/bin/llc -view-dag-combine1-dags -debug mytest.ll &>log
 
 PHONY += view_dag
 # clean ==================================================================================
