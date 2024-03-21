@@ -1,6 +1,14 @@
 #include <stdio.h>
 
-long imul(long a, long b) 
+// long imul(long a, long b) 
+// {
+//     return a * b;
+// }
+
+void test(int a, int *x, int *y)
 {
-    return a * b;
+  int b = a * x[0] + y[0];
+  int c = b + x[1];
+  int d = c * y[1];
+  y[2] = b + c + d;
 }

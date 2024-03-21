@@ -17,7 +17,7 @@ PHONY += commit sync sub_pull
 config_clang:
 	cd llvm-project && cmake -G Ninja -S llvm -B build -DCMAKE_INSTALL_PREFIX=../bin -DCMAKE_BUILD_TYPE=Debug -DLLVM_ENABLE_PROJECTS='clang;lld' -DLLVM_TARGETS_TO_BUILD='X86;Mips' -DLLVM_PARALLEL_COMPILE_JOBS=16 -DLLVM_PARALLEL_LINK_JOBS=2
 config_cpu0:
-	cd llvm-project && cmake -G Ninja -S llvm -B build -DCMAKE_INSTALL_PREFIX=../bin -DCMAKE_BUILD_TYPE=Debug -DLLVM_ENABLE_PROJECTS='clang' -DLLVM_TARGETS_TO_BUILD='Cpu0;X86;Mips' -DLLVM_PARALLEL_COMPILE_JOBS=16 -DLLVM_PARALLEL_LINK_JOBS=2
+	cd llvm-project && cmake -G Ninja -S llvm -B build -DCMAKE_INSTALL_PREFIX=../bin -DCMAKE_BUILD_TYPE=Debug -DLLVM_ENABLE_PROJECTS='clang' -DLLVM_TARGETS_TO_BUILD='Cpu0;X86;Mips;ARM' -DLLVM_PARALLEL_COMPILE_JOBS=16 -DLLVM_PARALLEL_LINK_JOBS=2
 build:
 	cd llvm-project/build && ninja
 save_change:
@@ -33,12 +33,12 @@ PHONY += build config_clang config_cpu0 save_change restore_change
 # test ===================================================================================
 view_dag:
 	clang -S -emit-llvm ./test/mytest.c -o mytest.ll -O3
-	./llvm-project/build/bin/llc -view-dag-combine1-dags -debug mytest.ll &>log
+	./llvm-project/build/bin/llc -march=arm -view-dag-combine1-dags -debug mytest.ll &>log
 
 PHONY += view_dag
 # clean ==================================================================================
 clean:
-	-rm *.bc *.ll *.s *.out
+	-rm *.bc *.ll *.s *.out log
 
 PHONY += clean
 # ========================================================================================

@@ -24,7 +24,7 @@ index bf1b110245bb..7891ef0aea92 100644
    message(FATAL_ERROR "Unknown architecture ${LLVM_NATIVE_ARCH}")
  endif ()
 diff --git a/llvm/include/llvm/BinaryFormat/ELF.h b/llvm/include/llvm/BinaryFormat/ELF.h
-index bace3a92677a..f1611b75601e 100644
+index 877f3f7862c8..554354dd40e0 100644
 --- a/llvm/include/llvm/BinaryFormat/ELF.h
 +++ b/llvm/include/llvm/BinaryFormat/ELF.h
 @@ -320,6 +320,7 @@ enum {
@@ -56,10 +56,10 @@ index bace3a92677a..f1611b75601e 100644
  enum : unsigned {
    // Definitions from LoongArch ELF psABI v2.01.
 diff --git a/llvm/include/llvm/Object/ELFObjectFile.h b/llvm/include/llvm/Object/ELFObjectFile.h
-index 1e73de9f08c1..4edfec64ea20 100644
+index f57a7ab8882a..fc19567e9421 100644
 --- a/llvm/include/llvm/Object/ELFObjectFile.h
 +++ b/llvm/include/llvm/Object/ELFObjectFile.h
-@@ -1262,6 +1262,8 @@ StringRef ELFObjectFile<ELFT>::getFileFormatName() const {
+@@ -1266,6 +1266,8 @@ StringRef ELFObjectFile<ELFT>::getFileFormatName() const {
        return "elf32-loongarch";
      case ELF::EM_XTENSA:
        return "elf32-xtensa";
@@ -68,7 +68,7 @@ index 1e73de9f08c1..4edfec64ea20 100644
      default:
        return "elf32-unknown";
      }
-@@ -1394,6 +1396,8 @@ template <class ELFT> Triple::ArchType ELFObjectFile<ELFT>::getArch() const {
+@@ -1398,6 +1400,8 @@ template <class ELFT> Triple::ArchType ELFObjectFile<ELFT>::getArch() const {
  
    case ELF::EM_XTENSA:
      return Triple::xtensa;
@@ -90,7 +90,7 @@ index f256e2b205a8..5bd6973c4aa7 100644
      ppc,            // PPC: powerpc
      ppcle,          // PPCLE: powerpc (little endian)
 diff --git a/llvm/lib/Object/ELF.cpp b/llvm/lib/Object/ELF.cpp
-index 137f606dd2d4..b6ba28573122 100644
+index 55dd0c8e06c0..94be26e08c83 100644
 --- a/llvm/lib/Object/ELF.cpp
 +++ b/llvm/lib/Object/ELF.cpp
 @@ -181,6 +181,13 @@ StringRef llvm::object::getELFRelocationTypeName(uint32_t Machine,
