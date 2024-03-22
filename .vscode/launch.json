@@ -76,7 +76,6 @@
             "program": "${workspaceFolder}/llvm-project/build/bin/llc",
             "args": [
                 "-debug",
-                "-march=arm",
                 "mytest.ll"
             ],
             "stopAtEntry": false,
