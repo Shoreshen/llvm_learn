@@ -90,7 +90,7 @@ index f256e2b205a8..5bd6973c4aa7 100644
      ppc,            // PPC: powerpc
      ppcle,          // PPCLE: powerpc (little endian)
 diff --git a/llvm/lib/Object/ELF.cpp b/llvm/lib/Object/ELF.cpp
-index 55dd0c8e06c0..94be26e08c83 100644
+index 0ac4e7a57759..4b2c046de197 100644
 --- a/llvm/lib/Object/ELF.cpp
 +++ b/llvm/lib/Object/ELF.cpp
 @@ -181,6 +181,13 @@ StringRef llvm::object::getELFRelocationTypeName(uint32_t Machine,

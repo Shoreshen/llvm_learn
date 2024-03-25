@@ -26,5 +26,6 @@
         "exception": "cpp",
         "stdexcept": "cpp",
         "utility": "cpp"
-    }
+    },
+    "C_Cpp.default.compilerPath": "/usr/bin/gcc"
 }
