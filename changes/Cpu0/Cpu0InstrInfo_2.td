@@ -12,64 +12,72 @@
 //===----------------------------------------------------------------------===//
 
 //===----------------------------------------------------------------------===//
-// Cpu0 profiles and nodes
+// Define SDNode as pattern operator
 //===----------------------------------------------------------------------===//
 
-// Return
-def Cpu0Ret : SDNode<"Cpu0ISD::Ret", SDTNone,
-                     [SDNPHasChain, SDNPOptInGlue, SDNPVariadic]>;
+// Return node, no input and output
+def Cpu0Ret : SDNode<
+    "Cpu0ISD::Ret",  // Node name
+    SDTNone,         // Node type: Number of input/output and other info
+    [SDNPHasChain, SDNPOptInGlue, SDNPVariadic] // Properties 
+>;
 
 //===----------------------------------------------------------------------===//
-// Instruction format superclass
+// Operand, used for input and output operand of instructions
 //===----------------------------------------------------------------------===//
 
-include "Cpu0InstrFormats.td"
-
-//===----------------------------------------------------------------------===//
-// Cpu0 Operand, Complex Patterns and Transformations Definitions.
-//===----------------------------------------------------------------------===//
-// Instruction operand types
-
-// Signed Operand
+// Signed 16bit integer
 def simm16      : Operand<i32> {
-  let DecoderMethod= "DecodeSimm16";
+  let DecoderMethod= "DecodeSimm16";        // self defined function for decoding
 }
 
 // Address operand
 def mem : Operand<iPTR> {
-  let PrintMethod = "printMemOperand";
-  let MIOperandInfo = (ops GPROut, simm16);
-  let EncoderMethod = "getMemEncoding";
+  let PrintMethod = "printMemOperand";      // self defined function for printing
+  let MIOperandInfo = (ops GPROut, simm16); // Define sub operands
+  let EncoderMethod = "getMemEncoding";     // self defined function for encoding
 }
 
-// Node immediate fits as 16-bit sign extended on target immediate.
-// e.g. addi, andi
-def immSExt16  : PatLeaf<(imm), [{ return isInt<16>(N->getSExtValue()); }]>;
-
-// Cpu0 Address Mode! SDNode frameindex could possibily be a match
-// since load and store instructions from stack used it.
-def addr : 
-  ComplexPattern<iPTR, 2, "SelectAddr", [frameindex], [SDNPWantParent]>;
-
 //===----------------------------------------------------------------------===//
-// Pattern fragment for load/store
+// Pattern fragments, used for pattern matching
 //===----------------------------------------------------------------------===//
 
-class AlignedLoad<PatFrag Node> :
-  PatFrag<(ops node:$ptr), (Node node:$ptr), [{
-  LoadSDNode *LD = cast<LoadSDNode>(N);
-  return LD->getMemoryVT().getSizeInBits()/8 <= LD->getAlignment();
-}]>;
+// Signed 16bit integer
+def immSExt16  : PatLeaf< // This is just a patfrag without sub-patten
+    (imm),  // imm is defined in `llvm/include/llvm/Target/TargetSelectionDAG.td` 
+            // This defines a DAG without operand
+    [{ return isInt<16>(N->getSExtValue()); }] // Predicate check for instruction selection
+>;
 
-class AlignedStore<PatFrag Node> :
-  PatFrag<(ops node:$val, node:$ptr), (Node node:$val, node:$ptr), [{
-  StoreSDNode *SD = cast<StoreSDNode>(N);
-  return SD->getMemoryVT().getSizeInBits()/8 <= SD->getAlignment();
-}]>;
+// Address
+def addr : ComplexPattern<
+    iPTR,               // Value type
+    2,                  // Operand number
+    "SelectAddr",       // Name of the function for instruction selection
+    [frameindex],       // Root SDNode
+    [SDNPWantParent]    // Properties 
+>;
 
-// Load/Store PatFrags.
-def load_a          : AlignedLoad<load>;
-def store_a         : AlignedStore<store>;
+// Load aligned
+def load_a : PatFrag<
+    (ops node:$ptr), 
+    (load node:$ptr), 
+    [{
+        LoadSDNode *LD = cast<LoadSDNode>(N);
+        return LD->getMemoryVT().getSizeInBits()/8 <= LD->getAlignment();
+    }]
+>;
+
+// Store aligned
+def store_a : PatFrag<
+    (ops node:$val, node:$ptr), 
+    (store node:$val, node:$ptr), 
+    [{
+        StoreSDNode *SD = cast<StoreSDNode>(N);
+        return SD->getMemoryVT().getSizeInBits()/8 <= SD->getAlignment();
+    }]
+>;
+
 
 //===----------------------------------------------------------------------===//
 // Instructions specific format
