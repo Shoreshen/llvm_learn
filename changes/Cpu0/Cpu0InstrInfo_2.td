@@ -60,12 +60,12 @@ def addr : ComplexPattern<
 
 // Load aligned
 def load_a : PatFrag<
-    (ops node:$ptr), 
-    (load node:$ptr), 
+    (ops node:$ptr),    // Define operands
+    (load node:$ptr),   // Define fitting patterns
     [{
         LoadSDNode *LD = cast<LoadSDNode>(N);
         return LD->getMemoryVT().getSizeInBits()/8 <= LD->getAlignment();
-    }]
+    }]                  // Check code, the reason of defining this PatFrag
 >;
 
 // Store aligned
@@ -80,7 +80,7 @@ def store_a : PatFrag<
 
 
 //===----------------------------------------------------------------------===//
-// Instructions specific format
+// Instructions format
 //===----------------------------------------------------------------------===//
 
 // Arithmetic and logical instructions with 2 register operands.
