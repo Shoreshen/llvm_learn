@@ -1,5 +1,5 @@
 diff --git a/llvm/CMakeLists.txt b/llvm/CMakeLists.txt
-index 6f5647d70d8b..1e73424c1421 100644
+index d511376e18ba..ba99a1d01d73 100644
 --- a/llvm/CMakeLists.txt
 +++ b/llvm/CMakeLists.txt
 @@ -487,6 +487,7 @@ set(LLVM_ALL_TARGETS
@@ -24,7 +24,7 @@ index bf1b110245bb..7891ef0aea92 100644
    message(FATAL_ERROR "Unknown architecture ${LLVM_NATIVE_ARCH}")
  endif ()
 diff --git a/llvm/include/llvm/BinaryFormat/ELF.h b/llvm/include/llvm/BinaryFormat/ELF.h
-index 877f3f7862c8..554354dd40e0 100644
+index ed267c100b76..befc2353df86 100644
 --- a/llvm/include/llvm/BinaryFormat/ELF.h
 +++ b/llvm/include/llvm/BinaryFormat/ELF.h
 @@ -320,6 +320,7 @@ enum {

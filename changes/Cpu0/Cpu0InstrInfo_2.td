@@ -27,7 +27,7 @@ def Cpu0Ret : SDNode<
 //===----------------------------------------------------------------------===//
 
 // Signed 16bit integer
-def simm16      : Operand<i32> {
+def simm16 : Operand<i32> {
   let DecoderMethod= "DecodeSimm16";        // self defined function for decoding
 }
 
@@ -60,7 +60,7 @@ def addr : ComplexPattern<
 
 // Load aligned
 def load_a : PatFrag<
-    (ops node:$ptr),    // Define operands
+    (ops node:$ptr),    // Define operands `ops` is the defined PatFrag
     (load node:$ptr),   // Define fitting patterns
     [{
         LoadSDNode *LD = cast<LoadSDNode>(N);
@@ -83,73 +83,64 @@ def store_a : PatFrag<
 // Instructions format
 //===----------------------------------------------------------------------===//
 
-// Arithmetic and logical instructions with 2 register operands.
-class ArithLogicI<bits<8> op, string instr_asm, SDNode OpNode,
-                  Operand Od, PatLeaf imm_type, RegisterClass RC> :
-  FL<op, (outs GPROut:$ra), (ins RC:$rb, Od:$imm16),
-     !strconcat(instr_asm, "\t$ra, $rb, $imm16"),
-     [(set GPROut:$ra, (OpNode RC:$rb, imm_type:$imm16))], IIAlu> {
-  let isReMaterializable = 1;
+// Generic Cpu0 Format
+class Cpu0Inst<dag outs, dag ins, string asmstr, list<dag> pattern>: Instruction
+{
+    // Specific fields for Cpu0
+    field bits<32> Inst;
+    bits<8> Opcode = 0;
+
+    // Fields in `class Instruction`
+    let Namespace = "Cpu0";
+    let Size = 4;
+    let OutOperandList = outs;  // Output operands
+    let InOperandList  = ins;   // Input operands
+    let AsmString   = asmstr;   // Assembly string
+    let Pattern     = pattern;
+    let TSFlags{3-0}   = format; // Value in `TSFlags` field in `MCInstrDesc` class
+    let DecoderNamespace = "Cpu0";
 }
 
-class FMem<bits<8> op, dag outs, dag ins, string asmstr, list<dag> pattern,
-          InstrItinClass itin>: FL<op, outs, ins, asmstr, pattern, itin> {
-  bits<20> addr;
-  let Inst{19-16} = addr{19-16};
-  let Inst{15-0}  = addr{15-0};
-  let DecoderMethod = "DecodeMem";
+class FA<bits<8> op, dag outs, dag ins, string asmstr,list<dag> pattern> : Cpu0Inst<outs, ins, asmstr, pattern>
+{
+    bits<4>  ra;
+    bits<4>  rb;
+    bits<4>  rc;
+    bits<12> cx;
+
+    let Inst{31-24} = op;
+    let Inst{23-20} = ra;
+    let Inst{19-16} = rb;
+    let Inst{15-12} = rc;
+    let Inst{11-0}  = cx;
+
+    let TSFlags{3-0} = 1;   // Value in `TSFlags` field in `MCInstrDesc` class, this indicate A type instruction
 }
 
-// Memory Load/Store
-let canFoldAsLoad = 1 in
-class LoadM<bits<8> op, string instr_asm, PatFrag OpNode, RegisterClass RC,
-            Operand MemOpnd, bit Pseudo>:
-  FMem<op, (outs RC:$ra), (ins MemOpnd:$addr),
-     !strconcat(instr_asm, "\t$ra, $addr"),
-     [(set RC:$ra, (OpNode addr:$addr))], IILoad> {
-  let isPseudo = Pseudo;
+class FL<bits<8> op, dag outs, dag ins, string asmstr, list<dag> pattern> : Cpu0Inst<outs, ins, asmstr, pattern>
+{
+    bits<4>  ra;
+    bits<4>  rb;
+    bits<16> imm16;
+
+    let Inst{31-24} = op;
+    let Inst{23-20} = ra;
+    let Inst{19-16} = rb;
+    let Inst{15-0}  = imm16;
+
+    let TSFlags{3-0} = 2;   // Value in `TSFlags` field in `MCInstrDesc` class, this indicate L type instruction
 }
 
-class StoreM<bits<8> op, string instr_asm, PatFrag OpNode, RegisterClass RC,
-             Operand MemOpnd, bit Pseudo>:
-  FMem<op, (outs), (ins RC:$ra, MemOpnd:$addr),
-     !strconcat(instr_asm, "\t$ra, $addr"),
-     [(OpNode RC:$ra, addr:$addr)], IIStore> {
-  let isPseudo = Pseudo;
+class FJ<bits<8> op, dag outs, dag ins, string asmstr, list<dag> pattern> : Cpu0Inst<outs, ins, asmstr, pattern>
+{
+    bits<24> addr;
+
+    let Inst{31-24} = op;
+    let Inst{23-0} = addr;
+
+    let TSFlags{3-0} = 3;   // Value in `TSFlags` field in `MCInstrDesc` class, this indicate J type instruction
 }
 
-//@ 32-bit load.
-class LoadM32<bits<8> op, string instr_asm, PatFrag OpNode,
-                   bit Pseudo = 0>
-  : LoadM<op, instr_asm, OpNode, GPROut, mem, Pseudo> {
-}
-
-// 32-bit store.
-class StoreM32<bits<8> op, string instr_asm, PatFrag OpNode,
-                    bit Pseudo = 0>
-  : StoreM<op, instr_asm, OpNode, GPROut, mem, Pseudo> {
-}
-
-//@JumpFR {
-let isBranch=1, isTerminator=1, isBarrier=1, imm16=0, hasDelaySlot = 1,
-    isIndirectBranch = 1 in
-class JumpFR<bits<8> op, string instr_asm, RegisterClass RC>:
-  FL<op, (outs), (ins RC:$ra),
-     !strconcat(instr_asm, "\t$ra"), [(brind RC:$ra)], IIBranch> {
-  let rb = 0;
-  let imm16 = 0;
-}
-//@JumpFR }
-
-// Return instruction
-class RetBase<RegisterClass RC>: JumpFR<0x3c, "ret", RC> {
-  let isReturn = 1;
-  let isCodeGenOnly = 1;
-  let hasCtrlDep = 1;
-  let hasExtraSrcRegAllocReq = 1;
-}
-
-  
 //===----------------------------------------------------------------------===//
 // Instruction definition
 //===----------------------------------------------------------------------===//
@@ -158,10 +149,19 @@ class RetBase<RegisterClass RC>: JumpFR<0x3c, "ret", RC> {
 // Cpu0 Instructions
 //===----------------------------------------------------------------------===//
 
-/// Load and Store Instructions
-///  aligned
-def LD     : LoadM32<0x01,  "ld",  load_a>;
-def ST     : StoreM32<0x02, "st",  store_a>;
+// Load and Store Instructions aligned
+def LD : FL<0x01, (outs GPROut:$ra), (ins mem:$addr), "ld\t$ra, $addr", [(set GPROut:$ra, (load_a addr:$addr))]> {
+    let isPseudo = 0;
+    let DecoderMethod = "DecodeMem";
+    let Inst{19-16} = addr{19-16};  // rb
+    let Inst{15-0}  = addr{15-0};   // imm16
+}
+def ST : FL<0x01, (outs GPROut:$ra), (ins mem:$addr), "st\t$ra, $addr", [(set GPROut:$ra, (store_a addr:$addr))]> {
+    let isPseudo = 0;
+    let DecoderMethod = "DecodeMem";
+    let Inst{19-16} = addr{19-16};  // rb
+    let Inst{15-0}  = addr{15-0};   // imm16
+}
 
 /// Arithmetic Instructions (ALU Immediate)
 // IR "add" defined in include/llvm/Target/TargetSelectionDAG.td, line 315 (def add).
