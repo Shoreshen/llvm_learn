@@ -1,4 +1,5 @@
 LLVM_NEW_FILES = $(shell cd llvm-project; git status --short | grep '^??' | awk '{printf "%s ", $$2}')
+BRANCH = $(shell git symbolic-ref --short HEAD)
 # git ====================================================================================
 sub_pull:
 	git submodule foreach --recursive 'git pull'
@@ -8,9 +9,9 @@ commit: clean
 	read comment; \
 	git commit -m"$$comment"
 sync: commit
-	git push -u origin main
-test_p:
-	@echo $(LLVM_NEW_FILES)
+	git push -u origin $(BRANCH)
+reset_hard:
+	git fetch && git reset --hard origin/$(BRANCH)
 
 PHONY += commit sync sub_pull
 # build ==================================================================================
