@@ -1,11 +1,21 @@
-===-- Cpu0Schedule.td - Cpu0 Scheduling Definitions ------*- tablegen -*-===//
+//===-- Cpu0Schedule.td - Cpu0 Scheduling Definitions ------*- tablegen -*-===//
+//
+//                    The LLVM Compiler Infrastructure
+//
+//This file is distributed under the University of Illinois Open Source
+//License. See LICENSE.TXT for details.
+//
+//===----------------------------------------------------------------------===//
 
-                    The LLVM Compiler Infrastructure
-
-This file is distributed under the University of Illinois Open Source
-License. See LICENSE.TXT for details.
-
-===----------------------------------------------------------------------===//
+//===----------------------------------------------------------------------===//
+// Scheduling classes
+//===----------------------------------------------------------------------===//
+def IIAlu              : SchedWrite;
+def II_CLO             : SchedWrite;
+def II_CLZ             : SchedWrite;
+def IILoad             : SchedWrite;
+def IIStore            : SchedWrite;
+def IIBranch           : SchedWrite;
 
 //===----------------------------------------------------------------------===//
 // machine scheduler
@@ -34,7 +44,7 @@ def ALU     : ProcResource<1>{
             Furthermore, the resource will block the CPU's pipline, 
             meaning CPU's pipline will be hold until the resource is released.
 
-        BufferSize = 1;
+        c. BufferSize = 1;
             This means from the moment, say `t`, of executing an instruction to `t+ReleaseAtCycles` (defined in WriteRes)
             the resource will stop accepting any subsequent instructions that uses this resourece.
             However, the subsequent instructions that uses this resource will be buffered, and CPU pipline will continue to 
@@ -47,16 +57,6 @@ def IMULDIV : ProcResource<1>{
     let BufferSize = 1;
     let SchedModel = Cpu0genericModel;
 }
-
-//===----------------------------------------------------------------------===//
-// Scheduling classes
-//===----------------------------------------------------------------------===//
-def IIAlu              : SchedWrite;
-def II_CLO             : SchedWrite;
-def II_CLZ             : SchedWrite;
-def IILoad             : SchedWrite;
-def IIStore            : SchedWrite;
-def IIBranch           : SchedWrite;
 
 //===----------------------------------------------------------------------===//
 // Write resources

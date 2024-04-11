@@ -16,7 +16,8 @@
 //===----------------------------------------------------------------------===//
 
 // Return node, no input and output
-def Cpu0Ret : SDNode<
+def Cpu0Ret : 
+SDNode<
     "Cpu0ISD::Ret",  // Node name
     SDTNone,         // Node type: Number of input/output and other info
     [SDNPHasChain, SDNPOptInGlue, SDNPVariadic] // Properties 
@@ -27,12 +28,14 @@ def Cpu0Ret : SDNode<
 //===----------------------------------------------------------------------===//
 
 // Signed 16bit integer
-def simm16 : Operand<i32> {
+def simm16 : 
+Operand<i32> {
   let DecoderMethod= "DecodeSimm16";        // self defined function for decoding
 }
 
 // Address operand
-def mem : Operand<iPTR> {
+def mem : 
+Operand<iPTR> {
   let PrintMethod = "printMemOperand";      // self defined function for printing
   let MIOperandInfo = (ops GPROut, simm16); // Define sub operands
   let EncoderMethod = "getMemEncoding";     // self defined function for encoding
@@ -43,14 +46,16 @@ def mem : Operand<iPTR> {
 //===----------------------------------------------------------------------===//
 
 // Signed 16bit integer
-def immSExt16  : PatLeaf< // This is just a patfrag without sub-patten
+def immSExt16 : 
+PatLeaf< // This is just a patfrag without sub-patten
     (imm),  // imm is defined in `llvm/include/llvm/Target/TargetSelectionDAG.td` 
             // This defines a DAG without operand
     [{ return isInt<16>(N->getSExtValue()); }] // Predicate check for instruction selection
 >;
 
 // Address
-def addr : ComplexPattern<
+def addr : 
+ComplexPattern<
     iPTR,               // Value type
     2,                  // Operand number
     "SelectAddr",       // Name of the function for instruction selection
@@ -69,7 +74,8 @@ def load_a : PatFrag<
 >;
 
 // Store aligned
-def store_a : PatFrag<
+def store_a : 
+PatFrag<
     (ops node:$val, node:$ptr), 
     (store node:$val, node:$ptr), 
     [{
@@ -142,48 +148,62 @@ class FJ<bits<8> op, dag outs, dag ins, string asmstr, list<dag> pattern> : Cpu0
 }
 
 //===----------------------------------------------------------------------===//
-// Instruction definition
-//===----------------------------------------------------------------------===//
-
-//===----------------------------------------------------------------------===//
 // Cpu0 Instructions
 //===----------------------------------------------------------------------===//
 
 // Load and Store Instructions aligned
-def LD : FL<0x01, (outs GPROut:$ra), (ins mem:$addr), "ld\t$ra, $addr", [(set GPROut:$ra, (load_a addr:$addr))]> {
+def LD : 
+FL<0x01, (outs GPROut:$ra), (ins mem:$addr), "ld\t$ra, $addr", [(set GPROut:$ra, (load_a addr:$addr))]> 
+{
     let isPseudo = 0;
     let DecoderMethod = "DecodeMem";
     let Inst{19-16} = addr{19-16};  // rb
     let Inst{15-0}  = addr{15-0};   // imm16
 }
-def ST : FL<0x01, (outs GPROut:$ra), (ins mem:$addr), "st\t$ra, $addr", [(set GPROut:$ra, (store_a addr:$addr))]> {
+def ST : 
+FL<0x01, (outs GPROut:$ra), (ins mem:$addr), "st\t$ra, $addr", [(set GPROut:$ra, (store_a addr:$addr))]> 
+{
     let isPseudo = 0;
     let DecoderMethod = "DecodeMem";
     let Inst{19-16} = addr{19-16};  // rb
     let Inst{15-0}  = addr{15-0};   // imm16
 }
 
-/// Arithmetic Instructions (ALU Immediate)
-// IR "add" defined in include/llvm/Target/TargetSelectionDAG.td, line 315 (def add).
-def ADDiu   : ArithLogicI<0x09, "addiu", add, simm16, immSExt16, CPURegs>;
+// Arithmetic Instructions (ALU Immediate)
+def ADDiu : 
+FL<0x09, (outs GPROut:$ra), (ins RC:$rb, simm16:$imm16), "addiu\t$ra, $rb, $imm16", [(set GPROut:$ra, (add CPURegs:$rb, immSExt16:$imm16))]>
+{
+    let isReMaterializable = 1;
+}
 
-/// Arithmetic Instructions (3-Operand, R-Type)
+// Shift Instructions
+def JR :
+FL<0x3c, (outs), (ins GPROut:$ra), "jr\t$ra", [(brind GPROut:$ra)]>,
 
-/// Shift Instructions
+{
+    // unused operand
+    let rb = 0;
+    let imm16 = 0;
 
-def JR      : JumpFR<0x3c, "jr", GPROut>;
-
-def RET     : RetBase<GPROut>;
+    // Instruction properties
+    let isBranch = 1;
+    let isTerminator = 1;
+    let isBarrier = 1;
+    let hasDelaySlot = 1;
+    let isIndirectBranch = 1;
+}
+def RET : 
+FL<0x3c, (outs), (ins GPROut:$ra), "ret\t$ra", [(brind GPROut:$ra)]>
+{
+    let isReturn = 1;
+    let isCodeGenOnly = 1;
+    let hasCtrlDep = 1;
+    let hasExtraSrcRegAllocReq = 1;
+}
 
 /// No operation
-let addr=0 in
-  def NOP   : FJ<0, (outs), (ins), "nop", [], IIAlu>;
-
-//===----------------------------------------------------------------------===//
-//  Arbitrary patterns that map to one or more instructions
-//===----------------------------------------------------------------------===//
-
-// Small immediates
-def : Pat<(i32 immSExt16:$in),
-          (ADDiu ZERO, imm:$in)>;
-
+def NOP : 
+FJ<0, (outs), (ins), "nop", []>
+{
+    let addr = 0;
+}
