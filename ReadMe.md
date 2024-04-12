@@ -25,10 +25,10 @@ C file:
 ```c
 void test(int a, int *x, int *y)
 {
-  int b = a * x[0] + y[0];
-  int c = b + x[1];
-  int d = c * y[1];
-  y[2] = b + c + d;
+    int b = a * x[0] + y[0];
+    int c = b + x[1];
+    int d = c * y[1];
+    y[2] = b + c + d;
 }
 ```
 
@@ -53,31 +53,127 @@ bb.0 (%ir-block.3): liveins: $edi, $rsi, $rdx
 
 We focus on the `IMUL32rm` instruction.
 
-### Related Definition
+### Schedule Class
 
-Instruction definition:
+This is defined to 
 
-```
-class BinOpRM<bits<8> o, string m, string args, X86TypeInfo t, dag out, list<dag> p>
-  : ITy<o, MRMSrcMem, t, out, (ins t.RegClass:$src1, t.MemOperand:$src2), m,
-        args, p>,
-    Sched<[WriteALU.Folded, WriteALU.ReadAfterFold]> {
-  let mayLoad = 1;
-}
+### Tablegen Definitions
+1. Schedule class definition
+    ```tablegen
+    def ReadAfterLd : SchedRead;
 
-class BinOpRM_RF<bits<8> o, string m, X86TypeInfo t, SDPatternOperator node, bit ndd = 0>
-  : BinOpRM<o, m, !if(!eq(ndd, 0), binop_args, binop_ndd_args), t, (outs t.RegClass:$dst),
-            [(set t.RegClass:$dst, EFLAGS, (node t.RegClass:$src1,
-             (t.LoadNode addr:$src2)))]>, DefEFLAGS, NDD<ndd>;
+    multiclass X86SchedWritePair<SchedRead ReadAfter = ReadAfterLd> {
+        // Register-Memory operation.
+        def Ld : SchedWrite;
+        // Register-Register operation.
+        def NAME : X86FoldableSchedWrite {
+            let Folded = !cast<SchedWrite>(NAME#"Ld");
+            let ReadAfterFold = ReadAfter;
+        }
+    }
 
-class IMulOpRM_RF<X86TypeInfo t, X86FoldableSchedWrite sched, bit ndd = 0>
-  : BinOpRM_RF<0xAF, "imul", t, X86smul_flag, ndd> {
-  let Form = MRMSrcMem;
-  let SchedRW = [sched.Folded, sched.ReadAfterFold];
-}
+    defm WriteIMul32Reg : X86SchedWritePair; // Integer 32-bit multiplication by register.
+    /*
+    def Ld : SchedWrite;
+    def WriteIMul32Reg : X86FoldableSchedWrite {
+        // Here `WriteIMul32RegLd` must be defined somewhere else
+        let Folded = !cast<SchedWrite>(WriteIMul32RegLd);
+        let ReadAfterFold = ReadAfterLd;
+    }
+    */
+    ```
+2. Instruction definition, this defines schedule class for instructions.
+    ```tablegen
+    class IMulOpRM_RF<X86TypeInfo t, X86FoldableSchedWrite sched, bit ndd = 0>
+    : BinOpRM_RF<0xAF, "imul", t, X86smul_flag, ndd> {
+        let Form = MRMSrcMem;
+        // `SchedRW` is member of `class Sched`, this mean to rewrite `Sched`
+        // According to the content, `sched.Folded = WriteIMul32RegLd` and `sched.ReadAfterFold = ReadAfterLd`
+        let SchedRW = [sched.Folded, sched.ReadAfterFold];
+    }
 
-def IMUL32rm : IMulOpRM_RF<Xi32, WriteIMul32Reg>, TB, OpSize32;
-```
+    def IMUL32rm : IMulOpRM_RF<Xi32, WriteIMul32Reg>, TB, OpSize32;
+    ```
+3. Input/Output of instruction:
+    ```tablegen
+    /*Inputs*/  (ins GR32:$src1, i32mem:$src2)
+    /*Output*/  (outs GR32:$dst)
+    ```
+4. Processor resource definition, this models the processor resources that used by instructions.
+    ```tablegen
+    // ports
+    def SBPort1 : ProcResource<1>;
+    def SBPort23 : ProcResource<2>;
+    // port groups
+    def SBPort01  : ProcResGroup<[SBPort0, SBPort1]>;
+    def SBPort15  : ProcResGroup<[SBPort1, SBPort5]>;
+    def SBPortAny : ProcResGroup<[SBPort0, SBPort1, SBPort23, SBPort4, SBPort5]> {
+        let BufferSize=54;
+    }
+    ```
+5. Write resource definitions, this map schedule class to processor resources and latency.
+    ```tablegen
+    multiclass SBWriteResPair<X86FoldableSchedWrite SchedRW,
+                            list<ProcResourceKind> ExePorts,
+                            int Lat, list<int> Res = [1], int UOps = 1,
+                            int LoadLat = 5, int LoadUOps = 1> {
+        // Register variant is using a single cycle on ExePort.
+        def : WriteRes<SchedRW, ExePorts> {
+            let Latency = Lat;
+            let ReleaseAtCycles = Res;
+            let NumMicroOps = UOps;
+        }
+
+        // Memory variant also uses a cycle on port 2/3 and adds LoadLat cycles to
+        // the latency (default = 5).
+        def : WriteRes<SchedRW.Folded, !listconcat([SBPort23], ExePorts)> {
+            let Latency = !add(Lat, LoadLat);
+            let ReleaseAtCycles = !listconcat([1], Res);
+            let NumMicroOps = !add(UOps, LoadUOps);
+        }
+    }
+
+    defm : SBWriteResPair<WriteIMul32Reg, [SBPort1],   3>;
+    /*
+    def : WriteRes<WriteIMul32Reg, [SBPort1]> {
+        let Latency = 3;
+        let ReleaseAtCycles = [1];
+        let NumMicroOps = 1;
+    }
+
+    // Memory variant also uses a cycle on port 2/3 and adds LoadLat cycles to
+    // the latency (default = 5).
+    def : WriteRes<WriteIMul32RegLd, [SBPort23, SBPort1]> {
+        let Latency = 8;
+        let ReleaseAtCycles = [1, 1];
+        let NumMicroOps = 2;
+    }
+    */
+    ```
+6. Read resource definitions
+    ```tablegen
+    def : ReadAdvance<ReadAfterLd, 5>;
+    ```
+7. `SchedMachineModel` definition, this defines chip level schedule properties.
+    ```tablegen
+    def SandyBridgeModel : SchedMachineModel {
+        // All x86 instructions are modeled as a single micro-op, and SB can decode 4
+        // instructions per cycle.
+        // FIXME: Identify instructions that aren't a single fused micro-op.
+        let IssueWidth = 4;
+        let MicroOpBufferSize = 168; // Based on the reorder buffer.
+        let LoadLatency = 5;
+        let MispredictPenalty = 16;
+
+        // Based on the LSD (loop-stream detector) queue size.
+        let LoopMicroOpBufferSize = 28;
+
+        // This flag is set to allow the scheduler to assign
+        // a default model to unrecognized opcodes.
+        let CompleteModel = 0;
+    }
+    ```
+### Explanations for tablegen definitions
 
 
 
