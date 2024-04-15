@@ -428,7 +428,7 @@ def : WriteRes<WriteIMul32RegLd, [SBPort23, SBPort1]> {
 
 1. 高级语言代码输入：用户提供高级语言代码，通常是C/C++或类似语言。
 2. LLVM IR生成：编译器将高级语言代码转换为LLVM IR（Intermediate Representation），利用LLVM工具链进行处理。
-3. NPU汇编生成：编译器截取LLVM IR中的特定部分，生成针对NPU的汇编代码。此过程包括将特定函数替换为系统调用函数（如npu_run）以启动NPU计算。
+3. NPU汇编生成：编译器截取LLVM IR中的特定部分，生成针对NPU的汇编代码。此过程包括将特定代码段（`begine_run_loop`到`end_run_loop`）替换为系统调用函数（如npu_run）以启动NPU计算。
 4. 宿主机汇编生成：剩余的LLVM IR代码转换为宿主机（Host）系统的汇编代码，以在主机CPU上执行。
 5. 可执行文件生成：LLVM工具链中的LLC工具将宿主机汇编代码转换为可执行文件，用于主机CPU执行。
 6. 动态链接库生成：NPU汇编代码转换为动态链接库（DLL），以供主机系统在运行时载入。
