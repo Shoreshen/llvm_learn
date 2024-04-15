@@ -146,7 +146,10 @@ def IMUL32rm : IMulOpRM_RF<Xi32, WriteIMul32Reg>, TB, OpSize32;
 
 `SchedRW` is the member of `Sched<list<SchedReadWrite> schedrw>`, by re-defining it the `IMUL32rm` instruction attach the schedule classes.
 
-From the [first](#schedule-write-type) and [second](#schedule-read-type) we can analyze that schedule classes `SchedRW = [WriteIMul32RegLd, ReadAfterLd]`.
+From the [first](#schedule-write-type) and [second](#schedule-read-type) we can analyze that:
+
+1. Schedule classes `SchedRW = [WriteIMul32RegLd, ReadAfterLd]`
+2. The inputs of the instruction are `GR32:$src1, i32mem:$src2` and the output is `GR32:$dst`
 
 #### Processor resource
 
@@ -241,7 +244,7 @@ Some of the major parameters are:
 | Latency         | If instruction is executed at time `t`, the result of it will be ready and can be used by other instructions after `t + Latency`                                                                                                                                                                    |
 | NumMicroOps     | Used to model instruction buffer (reservation station): <br> 1. if `BufferSize > 1`, then the resource will stall if total number of micro-ops greater than `BufferSize`<br>2. Otherwise, the processor will stall if micro-ops greater than `MicroOpBufferSize` in [Machine Model](#machine-model) |
 
-Back to the [example](#example), the `IMUL32rm` instruction needs the following write/read resources:
+Back to the [example](#example), the `IMUL32rm` instruction needs the following write resources:
 
 ```tablegen
 multiclass SBWriteResPair<X86FoldableSchedWrite SchedRW,
@@ -282,10 +285,131 @@ def : WriteRes<WriteIMul32RegLd, [SBPort23, SBPort1]> {
 */
 ```
 
+From the definition above, we can analyze that:
+
+1. From [previous section](#attach-schedule-class-to-instruction), `IMUL32rm` only has one output and its schedule write type is `WriteIMul32RegLd`. 
+   Thus, that output will be available after 8 cycles after the instruction is dispatched
+2. This instruction will take 2 slot in the reservation station.
+3. It is beleived that `ReleaseAtCycles` does not provide information since from [Processor resource](#processor-resource) we can see the default value for `BufferSize` is `-1`.
+
 #### Pipeline bypass
+
+This section defines the latency of the instruction's operand, which means the operand of an instruction will be needed after `n` cycles after the instruction is dispatched.
+
+The major class used in this section are `ReadAdvance` which defined in `TargetSchedule.td` as follow:
+
+```tablegen
+// Define values common to ReadAdvance and SchedReadAdvance.
+//
+// SchedModel ties these resources to a processor.
+class ProcReadAdvance<int cycles, list<SchedWrite> writes = []> {
+  int Cycles = cycles;
+  list<SchedWrite> ValidWrites = writes;
+  // Allow a processor to mark some scheduling classes as unsupported
+  // for stronger verification.
+  bit Unsupported = false;
+  SchedMachineModel SchedModel = ?;
+}
+
+// A processor may define a ReadAdvance associated with a SchedRead
+// to reduce latency of a prior write by N cycles. A negative advance
+// effectively increases latency, which may be used for cross-domain
+// stalls.
+//
+// A ReadAdvance may be associated with a list of SchedWrites
+// to implement pipeline bypass. The Writes list may be empty to
+// indicate operands that are always read this number of Cycles later
+// than a normal register read, allowing the read's parent instruction
+// to issue earlier relative to the writer.
+class ReadAdvance<SchedRead read, int cycles, list<SchedWrite> writes = []>
+  : ProcReadAdvance<cycles, writes> {
+  SchedRead ReadType = read;
+}
+```
+
+Key parameter is `Cycles`, which means the operand of an instruction will be needed after `n` cycles after the instruction is dispatched.
+
+Back to the [example](#example), the `IMUL32rm` instruction needs the following read resources:
+
+```tablegen
+def : ReadAdvance<ReadAfterLd, 5>;
+```
+
+From [previous section](#attach-schedule-class-to-instruction), `IMUL32rm` has 2 operands, only the first one has a schedule read type of `ReadAfterLd`
+
+From this we can know that the first operand of `IMUL32rm` will be needed after 5 cycles after the instruction is dispatched.
 
 #### Machine Model
 
+Used to define macro properties of the chip, definitions are as follow:
+
+```tablegen
+// Define the SchedMachineModel and provide basic properties for
+// coarse grained instruction cost model. Default values for the
+// properties are defined in MCSchedModel. A value of "-1" in the
+// target description's SchedMachineModel indicates that the property
+// is not overriden by the target.
+//
+// Target hooks allow subtargets to associate LoadLatency and
+// HighLatency with groups of opcodes.
+//
+// See MCSchedule.h for detailed comments.
+class SchedMachineModel {
+  int IssueWidth = -1; // Max micro-ops that may be scheduled per cycle.
+  int MicroOpBufferSize = -1; // Max micro-ops that can be buffered.
+  int LoopMicroOpBufferSize = -1; // Max micro-ops that can be buffered for
+                                  // optimized loop dispatch/execution.
+  int LoadLatency = -1; // Cycles for loads to access the cache.
+  int HighLatency = -1; // Approximation of cycles for "high latency" ops.
+  int MispredictPenalty = -1; // Extra cycles for a mispredicted branch.
+
+  // Per-cycle resources tables.
+  ProcessorItineraries Itineraries = NoItineraries;
+
+  bit PostRAScheduler = false; // Enable Post RegAlloc Scheduler pass.
+
+  // Subtargets that define a model for only a subset of instructions
+  // that have a scheduling class (itinerary class or SchedRW list)
+  // and may actually be generated for that subtarget must clear this
+  // bit. Otherwise, the scheduler considers an unmodelled opcode to
+  // be an error. This should only be set during initial bringup,
+  // or there will be no way to catch simple errors in the model
+  // resulting from changes to the instruction definitions.
+  bit CompleteModel = true;
+
+  // Indicates that we should do full overlap checking for multiple InstrRWs
+  // defining the same instructions within the same SchedMachineModel.
+  // FIXME: Remove when all in tree targets are clean with the full check
+  // enabled.
+  bit FullInstRWOverlapCheck = true;
+
+  // A processor may only implement part of published ISA, due to either new ISA
+  // extensions, (e.g. Pentium 4 doesn't have AVX) or implementation
+  // (ARM/MIPS/PowerPC/SPARC soft float cores).
+  //
+  // For a processor which doesn't support some feature(s), the schedule model
+  // can use:
+  //
+  // let<Predicate> UnsupportedFeatures = [HaveA,..,HaveY];
+  //
+  // to skip the checks for scheduling information when building LLVM for
+  // instructions which have any of the listed predicates in their Predicates
+  // field.
+  list<Predicate> UnsupportedFeatures = [];
+
+  bit NoModel = false; // Special tag to indicate missing machine model.
+
+  // Tells the MachineScheduler whether or not to track resource usage
+  // using intervals via ResourceSegments (see
+  // llvm/include/llvm/CodeGen/MachineScheduler.h).
+  bit EnableIntervals = false;
+}
+```
+
+Some of the key parameters are:
+
+1. `MicroOpBufferSize` size of reservation station, if `MicroOpBufferSize = 0` then in-order processor
+2. 
 
 ### Tablegen Definitions
 1. Schedule class definition
