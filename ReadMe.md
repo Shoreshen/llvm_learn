@@ -83,7 +83,7 @@ def WriteIMul32Reg : X86FoldableSchedWrite {
 */
 ```
 
-`IMUL32rm`'s schedule wrte type is `WriteIMul32Reg`, whose base classes is `SchedWrite`.
+`IMUL32rm`'s schedule wrte type is `WriteIMul32Reg`, whose base class is `SchedWrite`.
 
 #### Schedule read type
 
@@ -276,9 +276,14 @@ A DAG of tablegen has the form of `(operator operand_1, operand_2, ...)` for eac
 
 ##### DAG operand
 
-A DAG operand can be another DAG, or any instance with the base class of [`class DAGOperand`](llvm-project/llvm/include/llvm/Target/Target.td#L245).
+A DAG operand can be:
 
-Widely used sub-class of [`class DAGOperand`](llvm-project/llvm/include/llvm/Target/Target.td#L245) are:
+1. Another DAG 
+2. Any instance with the sub-class or class of [`class DAGOperand`](llvm-project/llvm/include/llvm/Target/Target.td#L245), wildly used sub-classes are [RegisterClass](#registerclass) and [Operand](#operand)
+3. [ComplexPattern](#complexpattern), used to define self defined selection method
+4. [PatLeaf](#patleaf), sub-class of [PatFrags](#patfrags), but can be used as DAG operand. Usually used to define special operand with constrains (e.g. 16 bit integer)
+
+Widely used sub-class or class of [`class DAGOperand`](llvm-project/llvm/include/llvm/Target/Target.td#L245) are:
 
 ###### RegisterClass
 
@@ -292,7 +297,7 @@ Defined in [Target.td](llvm-project/llvm/include/llvm/Target/Target.td#255) and 
 
 1. `regTypes`: register value type (e.g int, float, vector type)
 2. `alignment`: alignment required of the registers when they are stored or loaded to memory
-3. `regList`: form of `(add dag_1, dag_2, ...)` in this case the `dag_i` must be sub-class of [`class Register`](llvm-project/llvm/include/llvm/Target/Target.td#L163). This list out all the registers in this register class
+3. `regList`: form of `(add dag_1, dag_2, ...)` in this case the `dag_i` must be sub-class or class of [`class Register`](llvm-project/llvm/include/llvm/Target/Target.td#L163). This list out all the registers in this register class
 
 ###### Operand
 
@@ -309,28 +314,36 @@ The base class is [`class Operand`](llvm-project/llvm/include/llvm/Target/Target
    2. `(MEMri $rs1, $simm13):$addr` can be used as operand of a DAG, in this case `rs1`, `simm13` and `addr` can all be used to value variables illustrated [below](#instruction)
 4. `EncoderMethod`: self defined function for encoding
 
+###### ComplexPattern
+
+Any sub-class or class of [`class ComplexPattern`](llvm-project/llvm/include/llvm/Target/TargetSelectionDAG.td#L1999), key parameters are:
+
+1. `Ty`: value type
+2. `numops`: number of operand returned by `SelectFunc` (passed in as pointer parameter) after the first parameter.
+3. `roots`: list of possible root nodes of the sub-DAGs to match, the first parameter of `SelectFunc` is always the found possible root node
+4. `SelectFunc`: name of the self-defined selection function
+
+###### PatLeaf
+
+[`class PatLeaf`](llvm-project/llvm/include/llvm/Target/TargetSelectionDAG.td#L965)
+
 ##### DAG operator
 
-Instance with the base class of [`class SDPatternOperator`](llvm-project/llvm/include/llvm/CodeGen/SDNodeProperties.td#L12), Widely used sub-classes are:
+Any sub-class or class of [`class SDPatternOperator`](llvm-project/llvm/include/llvm/CodeGen/SDNodeProperties.td#L12), Widely used sub-classes are:
 
 ###### SDNode
 
 ###### PatFrags
 
-###### PatLeaf
-
-###### ComplexPattern
-
 ###### Special operators 
 
-including `ins`, `outs`, `set`, `ops` and etc which has no base class. These operators are used for special cases including:
-   1. `ins`: operator of input dag
+Including `ins`, `outs`, `set`, `ops` and etc which has no base class. These operators are used for special cases including:
 
-Instance
+1. `ins`: operator of input dag
 
 #### Instruction
 
-All instruction definition has base class of [`Instruction`](llvm-project/llvm/include/llvm/Target/Target.td#L586) and some of the key parameters are:
+All instruction definition has sub-class or class of [`Instruction`](llvm-project/llvm/include/llvm/Target/Target.td#L586) and some of the key parameters are:
 
 1. `Namespace`: Name of the target cpu
 2. `Size`: Size in byte of encoded instruction, or zero if the size cannot be determined from the opcode
@@ -341,9 +354,9 @@ All instruction definition has base class of [`Instruction`](llvm-project/llvm/i
 4. `AsmString`: assembly string, using `$name_i` can acquire values result from compiling process (e.g. `st\t$ra, $addr` if allocate `rax` and `0x10000` as operator, it will print out `st\trax, 0x10000`)
 5. `pattern`: used in instruction selection: 
    1. Rules out original DAGs that can be covered by this instruction
-   2. Original DAG using operator defined in `TargetSelectionDAG.td` with base class of `class SDNode`
-   3. Original DAG's leaf `dag_i` are defined in `Target.td` with base class of `class DAGOperand` (mostly `class Operand` or `class RegisterClass`)
-   4. User can define its own new leaf `dag_i` and `operator` with base class of `class DAGOperand` and `class SDNode` respectively
+   2. Original DAG using operator defined in `TargetSelectionDAG.td` with sub-class or class of `class SDNode`
+   3. Original DAG's leaf `dag_i` are defined in `Target.td` with sub-class or class of `class DAGOperand` (mostly `class Operand` or `class RegisterClass`)
+   4. User can define its own new leaf `dag_i` and `operator` with sub-class or class of `class DAGOperand` and `class SDNode` respectively
 6. `TSFlags`: Value of `TSFlags` field in `MCInstrDesc` c++ class
 
 ### Example
