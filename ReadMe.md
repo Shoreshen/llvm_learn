@@ -268,15 +268,17 @@ Used to define macro properties of the chip, the instance of [`class SchedMachin
 
 #### DAG
 
-A DAG of tablegen has the form of `(op dag_1, dag_2, ...)` for each sub DAG, it can have a name by `(op dag_1:$name_1, dag_2:$name_2, ...)`
+A DAG of tablegen has the form of `(operator operand_1, operand_2, ...)` for each sub DAG, it can have a name by `(operator operand_1:$name_1, operand_2:$name_2, ...)`
 
-1. `op` refers to DAG operator
-2. `dag_i` refers to another DAG or DAG operand
-3. `name_i` refers to the name of that DAG ro DAG operand
+1. `operator` refers to [DAG operator](#dag-operator)
+2. `operand_i` refers to [DAG operand](#dag-operand)
+3. `name_i` refers to the name [DAG operand](#dag-operand)
 
 ##### DAG operand
 
-Any instance with the base class of [Target.td](llvm-project/llvm/include/llvm/Target/Target.td#245), widely used sub-classes are:
+A DAG operand can be another DAG, or any instance with the base class of [`class DAGOperand`](llvm-project/llvm/include/llvm/Target/Target.td#L245).
+
+Widely used sub-class of [`class DAGOperand`](llvm-project/llvm/include/llvm/Target/Target.td#L245) are:
 
 ###### RegisterClass
 
@@ -297,6 +299,15 @@ Defined in [Target.td](llvm-project/llvm/include/llvm/Target/Target.td#255) and 
 Used to define address, values that can be determined while compiling other than register
 
 For example, there may be addresses in stack result from register spill, which can only be found while compilation and can be different for different programs
+
+The base class is [`class Operand`](llvm-project/llvm/include/llvm/Target/Target.td#997) and key parameters are:
+
+1. `Type`: the type of this operand
+2. `PrintMethod`: name of the function to call when printing this operand
+3. `MIOperandInfo`: Sub-DAG definition, with form of `(ops dag_1, dag_2, ...)`, if example defined as `def MEMrr : Operand<i32> {...;let MIOperandInfo = (ops IntRegs, IntRegs);}` then:
+   1. `MEMrr:$addr` can be used as operand of a DAG, while `addr` can be used to value variables illustrated [below](#instruction)
+   2. `(MEMri $rs1, $simm13):$addr` can be used as operand of a DAG, in this case `rs1`, `simm13` and `addr` can all be used to value variables illustrated [below](#instruction)
+4. `EncoderMethod`: self defined function for encoding
 
 ##### DAG operator
 
