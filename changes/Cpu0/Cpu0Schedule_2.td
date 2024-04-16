@@ -33,22 +33,21 @@ def Cpu0genericModel : SchedMachineModel {
 //===----------------------------------------------------------------------===//
 def ALU     : ProcResource<1>{
     /*
-        a. BufferSize = -1;
-            This means the resource share reseration with CPU (out-of-order processor's instruction buffer).
-            A more simple description is that this resource can accept instructions 
-            while the CPU's reservation station is not full.
+        1. `BufferSize = -1`:
+            This means the resource shares reservation station with CPU (out-of-order processor's instruction buffer).
+            A more simple description is that this resource can accept instructions while the CPU's reservation station is not full.
 
-        b. BufferSize = 0;
-            This means from the moment, say `t`, of executing an instruction to `t+ReleaseAtCycles` (defined in WriteRes)
-            the resource will stop accepting any subsequent instructions that uses this resourece.
-            Furthermore, the resource will block the CPU's pipline, 
-            meaning CPU's pipline will be hold until the resource is released.
+        2. `BufferSize = 0`:
+            Assume at time `t` one of the instruction uses this resource stated execution. 
+            Then it means from the moment `t + AcquireAtCycles` to `t + ReleaseAtCycles` (defined in [`WriteRes`](#write-resource))
+            If there is subsequent instructions that uses this resource, the pipeline will stall
 
-        c. BufferSize = 1;
-            This means from the moment, say `t`, of executing an instruction to `t+ReleaseAtCycles` (defined in WriteRes)
-            the resource will stop accepting any subsequent instructions that uses this resourece.
-            However, the subsequent instructions that uses this resource will be buffered, and CPU pipline will continue to 
-            execute other instructions that do not use this resource.
+        3. `BufferSize = 1`:
+            This means the resource is well pipelined with the CPU, thus subsequent instruction uses the same resource will be accepted. 
+            Stall will happen if the instruction's operand is not ready.
+
+        4. `BufferSize > 1`:
+            This means the resource has it's own reservation station.
     */
     let BufferSize = 1;
     let SchedModel = Cpu0genericModel;
