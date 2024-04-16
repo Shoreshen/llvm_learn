@@ -57,17 +57,9 @@ We focus on the `IMUL32rm` instruction.
 
 #### Schedule write type
 
-Just a name for different schedule write type, the base class is `SchedWrite`, it is an empty class and defined in `TargetSchedule.td` as follow:
+Just a name for different schedule write type, the base class is [`SchedWrite`](llvm-project/llvm/include/llvm/Target/TargetSchedule.td#L225).
 
-```tablegen
-// A target architecture may define SchedReadWrite types and associate
-// them with instruction operands.
-class SchedReadWrite;
-// Define a scheduler resource associated with a def operand.
-class SchedWrite : SchedReadWrite;
-```
-
-Back to the [example](#example), the `IMUL32rm` instruction's related schedule class are defined as follow:
+From the [example](#example), the `IMUL32rm` instruction's related schedule class are defined as follow:
 
 ```tablegen
 multiclass X86SchedWritePair<SchedRead ReadAfter = ReadAfterLd> {
@@ -95,19 +87,9 @@ def WriteIMul32Reg : X86FoldableSchedWrite {
 
 #### Schedule read type
 
-Same as [schedule write type](#schedule-write-type), it just name a type for schedule read type.
+Same as [schedule write type](#schedule-write-type), it just name a type for schedule read type. The base class is [`SchedRead`](llvm-project/llvm/include/llvm/Target/TargetSchedule.td#L229).
 
-The base class is `SchedRead`, it is an empty class and defined in `TargetSchedule.td` as follow:
-
-```tablegen
-// A target architecture may define SchedReadWrite types and associate
-// them with instruction operands.
-class SchedReadWrite;
-// Define a scheduler resource associated with a def operand.
-class SchedWrite : SchedReadWrite;
-```
-
-Back to the [example](#example), the `IMUL32rm` instruction's related schedule class are defined as follow:
+From the [example](#example), the `IMUL32rm` instruction's related schedule class are defined as follow:
 
 ```tablegen
 def ReadAfterLd : SchedRead;
@@ -155,26 +137,7 @@ From the [first](#schedule-write-type) and [second](#schedule-read-type) we can 
 
 This section rules out the processor's resources that used by instructions, in order to include the usage of each resource in to the schedule model.
 
-The major class used in this section are `ProcResource` which defined in `TargetSchedule.td` as follow:
-
-```tablegen
-// Define a kind of processor resource that may be common across
-// similar subtargets.
-class ProcResourceKind;
-
-class ProcResourceUnits<ProcResourceKind kind, int num> {
-    ProcResourceKind Kind = kind;
-    int NumUnits = num;
-    ProcResourceKind Super = ?;
-    int BufferSize = -1;
-    SchedMachineModel SchedModel = ?;
-}
-
-class ProcResource<int num> : ProcResourceKind,
-    ProcResourceUnits<!cast<ProcResourceKind>(NAME), num>;
-```
-
-Some of the major parameters are:
+The major class used in this section are [`ProcResource`](llvm-project/llvm/include/llvm/Target/TargetSchedule.td#L197) and some of the major parameters are:
 
 | Param      | Illustration                                                                               |
 | ---------- | ------------------------------------------------------------------------------------------ |
@@ -212,30 +175,7 @@ def SBPort23 : ProcResource<2>;
 
 This defines the resources and latency of a [`SchedWrite`](#schedule-write-type) type.
 
-The major class used in this section are `WriteRes` which defined in `TargetSchedule.td` as follow:
-
-```tablegen
-class ProcWriteResources<list<ProcResourceKind> resources> {
-  list<ProcResourceKind> ProcResources = resources;
-  list<int> ReleaseAtCycles = [];
-  list<int> AcquireAtCycles = [];
-  int Latency = 1;
-  int NumMicroOps = 1;
-  bit BeginGroup = false;
-  bit EndGroup = false;
-  bit Unsupported = false;
-  bit SingleIssue = false;
-  bit RetireOOO = false;
-  SchedMachineModel SchedModel = ?;
-}
-
-class WriteRes<SchedWrite write, list<ProcResourceKind> resources>
-  : ProcWriteResources<resources> {
-  SchedWrite WriteType = write;
-}
-```
-
-Some of the major parameters are:
+The major class used in this section are [`WriteRes`](llvm-project/llvm/include/llvm/Target/TargetSchedule.td#L310) and some of the major parameters are:
 
 | Param           | Illustration                                                                                                                                                                                                                                                                                        |
 | --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -296,36 +236,7 @@ From the definition above, we can analyze that:
 
 This section defines the latency of the instruction's operand, which means the operand of an instruction will be needed after `n` cycles after the instruction is dispatched.
 
-The major class used in this section are `ReadAdvance` which defined in `TargetSchedule.td` as follow:
-
-```tablegen
-// Define values common to ReadAdvance and SchedReadAdvance.
-//
-// SchedModel ties these resources to a processor.
-class ProcReadAdvance<int cycles, list<SchedWrite> writes = []> {
-  int Cycles = cycles;
-  list<SchedWrite> ValidWrites = writes;
-  // Allow a processor to mark some scheduling classes as unsupported
-  // for stronger verification.
-  bit Unsupported = false;
-  SchedMachineModel SchedModel = ?;
-}
-
-// A processor may define a ReadAdvance associated with a SchedRead
-// to reduce latency of a prior write by N cycles. A negative advance
-// effectively increases latency, which may be used for cross-domain
-// stalls.
-//
-// A ReadAdvance may be associated with a list of SchedWrites
-// to implement pipeline bypass. The Writes list may be empty to
-// indicate operands that are always read this number of Cycles later
-// than a normal register read, allowing the read's parent instruction
-// to issue earlier relative to the writer.
-class ReadAdvance<SchedRead read, int cycles, list<SchedWrite> writes = []>
-  : ProcReadAdvance<cycles, writes> {
-  SchedRead ReadType = read;
-}
-```
+The major class used in this section are [`ReadAdvance`](llvm-project/llvm/include/llvm/Target/TargetSchedule.td#L343)
 
 Key parameter is `Cycles`, which means the operand of an instruction will be needed after `n` cycles after the instruction is dispatched.
 
@@ -341,72 +252,7 @@ From this we can know that the first operand of `IMUL32rm` will be needed after 
 
 #### Machine Model
 
-Used to define macro properties of the chip, definitions are as follow:
-
-```tablegen
-// Define the SchedMachineModel and provide basic properties for
-// coarse grained instruction cost model. Default values for the
-// properties are defined in MCSchedModel. A value of "-1" in the
-// target description's SchedMachineModel indicates that the property
-// is not overriden by the target.
-//
-// Target hooks allow subtargets to associate LoadLatency and
-// HighLatency with groups of opcodes.
-//
-// See MCSchedule.h for detailed comments.
-class SchedMachineModel {
-  int IssueWidth = -1; // Max micro-ops that may be scheduled per cycle.
-  int MicroOpBufferSize = -1; // Max micro-ops that can be buffered.
-  int LoopMicroOpBufferSize = -1; // Max micro-ops that can be buffered for
-                                  // optimized loop dispatch/execution.
-  int LoadLatency = -1; // Cycles for loads to access the cache.
-  int HighLatency = -1; // Approximation of cycles for "high latency" ops.
-  int MispredictPenalty = -1; // Extra cycles for a mispredicted branch.
-
-  // Per-cycle resources tables.
-  ProcessorItineraries Itineraries = NoItineraries;
-
-  bit PostRAScheduler = false; // Enable Post RegAlloc Scheduler pass.
-
-  // Subtargets that define a model for only a subset of instructions
-  // that have a scheduling class (itinerary class or SchedRW list)
-  // and may actually be generated for that subtarget must clear this
-  // bit. Otherwise, the scheduler considers an unmodelled opcode to
-  // be an error. This should only be set during initial bringup,
-  // or there will be no way to catch simple errors in the model
-  // resulting from changes to the instruction definitions.
-  bit CompleteModel = true;
-
-  // Indicates that we should do full overlap checking for multiple InstrRWs
-  // defining the same instructions within the same SchedMachineModel.
-  // FIXME: Remove when all in tree targets are clean with the full check
-  // enabled.
-  bit FullInstRWOverlapCheck = true;
-
-  // A processor may only implement part of published ISA, due to either new ISA
-  // extensions, (e.g. Pentium 4 doesn't have AVX) or implementation
-  // (ARM/MIPS/PowerPC/SPARC soft float cores).
-  //
-  // For a processor which doesn't support some feature(s), the schedule model
-  // can use:
-  //
-  // let<Predicate> UnsupportedFeatures = [HaveA,..,HaveY];
-  //
-  // to skip the checks for scheduling information when building LLVM for
-  // instructions which have any of the listed predicates in their Predicates
-  // field.
-  list<Predicate> UnsupportedFeatures = [];
-
-  bit NoModel = false; // Special tag to indicate missing machine model.
-
-  // Tells the MachineScheduler whether or not to track resource usage
-  // using intervals via ResourceSegments (see
-  // llvm/include/llvm/CodeGen/MachineScheduler.h).
-  bit EnableIntervals = false;
-}
-```
-
-Some of the key parameters are:
+Used to define macro properties of the chip, the instance of [`class SchedMachineModel`](llvm-project/llvm/include/llvm/Target/TargetSchedule.td#L76), some of the key parameters are:
 
 1. `MicroOpBufferSize` size of reservation station, if `MicroOpBufferSize = 0` then in-order processor
 2. `IssueWidth` number of micro-ops can be issued per-cycle.
@@ -418,6 +264,80 @@ Some of the key parameters are:
 
 ## Instruction Define
 
+### Definitions
+
+#### DAG
+
+A DAG of tablegen has the form of `(op dag_1, dag_2, ...)` for each sub DAG, it can have a name by `(op dag_1:$name_1, dag_2:$name_2, ...)`
+
+1. `op` refers to DAG operator
+2. `dag_i` refers to another DAG or DAG operand
+3. `name_i` refers to the name of that DAG ro DAG operand
+
+##### DAG operand
+
+Any instance with the base class of [Target.td](llvm-project/llvm/include/llvm/Target/Target.td#245), widely used sub-classes are:
+
+###### RegisterClass
+
+Use to define a class of register that is available for register allocation.
+
+While register allocation happens, the allocator will pick a register from the class.
+
+The related variables defined then will be valued
+
+Defined in [Target.td](llvm-project/llvm/include/llvm/Target/Target.td#255) and its key parameters:
+
+1. `regTypes`: register value type (e.g int, float, vector type)
+2. `alignment`: alignment required of the registers when they are stored or loaded to memory
+3. `regList`: form of `(add dag_1, dag_2, ...)` in this case the `dag_i` must be sub-class of [`class Register`](llvm-project/llvm/include/llvm/Target/Target.td#L163). This list out all the registers in this register class
+
+###### Operand
+
+Used to define address, values that can be determined while compiling other than register
+
+For example, there may be addresses in stack result from register spill, which can only be found while compilation and can be different for different programs
+
+##### DAG operator
+
+Instance with the base class of [`class SDPatternOperator`](llvm-project/llvm/include/llvm/CodeGen/SDNodeProperties.td#L12), Widely used sub-classes are:
+
+###### SDNode
+
+###### PatFrags
+
+###### PatLeaf
+
+###### ComplexPattern
+
+###### Special operators 
+
+including `ins`, `outs`, `set`, `ops` and etc which has no base class. These operators are used for special cases including:
+   1. `ins`: operator of input dag
+
+Instance
+
+#### Instruction
+
+All instruction definition has base class of [`Instruction`](llvm-project/llvm/include/llvm/Target/Target.td#L586) and some of the key parameters are:
+
+1. `Namespace`: Name of the target cpu
+2. `Size`: Size in byte of encoded instruction, or zero if the size cannot be determined from the opcode
+3. `OutOperandList`/`InOperandList`: def/use [DAG](#dag) to list out define and use fo the instruction
+   1. Has format of `(ins/outs dag_1:$name_1, dag_2:$name_2, ...)`, here note
+   2. Each `dag_i:$name_i` contains a value result from compiling process (different on each program, e.g. different program result in different register allocation, only can be decided while compiling)
+   3. By defining variable using name `name_i`, the variable will acquire values result from compiling process
+4. `AsmString`: assembly string, using `$name_i` can acquire values result from compiling process (e.g. `st\t$ra, $addr` if allocate `rax` and `0x10000` as operator, it will print out `st\trax, 0x10000`)
+5. `pattern`: used in instruction selection: 
+   1. Rules out original DAGs that can be covered by this instruction
+   2. Original DAG using operator defined in `TargetSelectionDAG.td` with base class of `class SDNode`
+   3. Original DAG's leaf `dag_i` are defined in `Target.td` with base class of `class DAGOperand` (mostly `class Operand` or `class RegisterClass`)
+   4. User can define its own new leaf `dag_i` and `operator` with base class of `class DAGOperand` and `class SDNode` respectively
+6. `TSFlags`: Value of `TSFlags` field in `MCInstrDesc` c++ class
+
+### Example
+
+Using `backend_tutorial/chapters/Chapter2/Cpu0InstrFormats.td` and `backend_tutorial/chapters/Chapter2/Cpu0InstrInfo.td` as example.
 
 # 官方教程
     

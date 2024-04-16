@@ -171,7 +171,7 @@ FL<0x01, (outs GPROut:$ra), (ins mem:$addr), "st\t$ra, $addr", [(set GPROut:$ra,
 
 // Arithmetic Instructions (ALU Immediate)
 def ADDiu : 
-FL<0x09, (outs GPROut:$ra), (ins RC:$rb, simm16:$imm16), "addiu\t$ra, $rb, $imm16", [(set GPROut:$ra, (add CPURegs:$rb, immSExt16:$imm16))]>
+FL<0x09, (outs GPROut:$ra), (ins GPROut:$rb, simm16:$imm16), "addiu\t$ra, $rb, $imm16", [(set GPROut:$ra, (add CPURegs:$rb, immSExt16:$imm16))]>
 {
     let isReMaterializable = 1;
 }
