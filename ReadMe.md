@@ -262,6 +262,8 @@ Used to define macro properties of the chip, the instance of [`class SchedMachin
 
 ### Source code and related structures
 
+Entry point of debug is [here](llvm-project/llvm/lib/CodeGen/MachineScheduler.cpp#L433) 
+
 ## Instruction Define
 
 ### Definitions
@@ -271,19 +273,16 @@ Used to define macro properties of the chip, the instance of [`class SchedMachin
 A DAG of tablegen has the form of `(operator operand_1, operand_2, ...)` for each sub DAG, it can have a name by `(operator operand_1:$name_1, operand_2:$name_2, ...)`
 
 1. `operator` refers to [DAG operator](#dag-operator)
-2. `operand_i` refers to [DAG operand](#dag-operand)
-3. `name_i` refers to the name [DAG operand](#dag-operand)
+2. `operand_i` can be [DAG operand](#dag-operand) or a sub-DAG, only [DAG operand](#dag-operand) have a value with it.
+3. `name_i` refers to the name [DAG operand](#dag-operand), can be used to [value variables](#instruction)
+4. User can also define "macro" like mappings to simplify the pattern match recognitions
 
 ##### DAG operand
 
 A DAG operand can be:
 
-1. Another DAG 
-2. Any instance with the sub-class or class of [`class DAGOperand`](llvm-project/llvm/include/llvm/Target/Target.td#L245), wildly used sub-classes are [RegisterClass](#registerclass) and [Operand](#operand)
-3. [ComplexPattern](#complexpattern), used to define self defined selection method
-4. [PatLeaf](#patleaf), sub-class of [PatFrags](#patfrags), but can be used as DAG operand. Usually used to define special operand with constrains (e.g. 16 bit integer)
-
-Widely used sub-class or class of [`class DAGOperand`](llvm-project/llvm/include/llvm/Target/Target.td#L245) are:
+1. Any instance with the sub-class or class of [`class DAGOperand`](llvm-project/llvm/include/llvm/Target/Target.td#L245), wildly used sub-classes are [RegisterClass](#registerclass) and [Operand](#operand)
+2. [ComplexPattern](#complexpattern), used to define self defined selection method
 
 ###### RegisterClass
 
@@ -323,23 +322,40 @@ Any sub-class or class of [`class ComplexPattern`](llvm-project/llvm/include/llv
 3. `roots`: list of possible root nodes of the sub-DAGs to match, the first parameter of `SelectFunc` is always the found possible root node
 4. `SelectFunc`: name of the self-defined selection function
 
-###### PatLeaf
-
-[`class PatLeaf`](llvm-project/llvm/include/llvm/Target/TargetSelectionDAG.td#L965)
+Note: There is still question that if `ComplexPattern` has a value. It has an element of `ValueType`. But cannot find any evidence of valuing the `ComplexPattern` node it self.
 
 ##### DAG operator
 
-Any sub-class or class of [`class SDPatternOperator`](llvm-project/llvm/include/llvm/CodeGen/SDNodeProperties.td#L12), Widely used sub-classes are:
+A DAG operator can be:
+
+1. Any sub-class or class of [`class SDPatternOperator`](llvm-project/llvm/include/llvm/CodeGen/SDNodeProperties.td#L12), Widely used sub-classes are [SDNode](#sdnode)
+2. Some [special operators](#special-operators)
 
 ###### SDNode
 
-###### PatFrags
+The base class is [`class SDNode`](llvm-project/llvm/include/llvm/Target/TargetSelectionDAG.td#L332) and key parameters are:
+
+1. `Opcode`: opcode of the node
+2. `typeprof`: instance of [`class SDTypeProfile`](llvm-project/llvm/include/llvm/Target/TargetSelectionDAG.td#L97), implement number of output/input operands and constraints
+3. `Properties`: `list` of `class SDNodeProperty` (available properties are listed in [SDNodeProperties.td](llvm-project/llvm/include/llvm/CodeGen/SDNodeProperties.td))
 
 ###### Special operators 
 
 Including `ins`, `outs`, `set`, `ops` and etc which has no base class. These operators are used for special cases including:
 
-1. `ins`: operator of input dag
+1. `ins`: special operator for instruction's `InOperandList`, which is the `uses` of the instruction
+2. `outs`: special operator for instruction's `OutOperandList`, which is the `defs` of the instruction
+3. `ops`: used in `MIOperandInfo` of [`class Operand`](#operand) to list out the operands of the operand
+4. `set`: used in `pattern` element of instruction to define the pattern in instruction selection
+
+##### Pattern mapping
+
+###### PatFrags
+
+
+###### PatLeaf
+
+[`class PatLeaf`](llvm-project/llvm/include/llvm/Target/TargetSelectionDAG.td#L965)
 
 #### Instruction
 
