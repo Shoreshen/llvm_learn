@@ -266,9 +266,7 @@ Entry point of debug is [here](llvm-project/llvm/lib/CodeGen/MachineScheduler.cp
 
 ## Instruction Define
 
-### Definitions
-
-#### DAG
+### DAG
 
 A DAG of tablegen has the form of `(operator operand_1, operand_2, ...)` for each sub DAG, it can have a name by `(operator operand_1:$name_1, operand_2:$name_2, ...)`
 
@@ -277,14 +275,11 @@ A DAG of tablegen has the form of `(operator operand_1, operand_2, ...)` for eac
 3. `name_i` refers to the name [DAG operand](#dag-operand), can be used to [value variables](#instruction)
 4. User can also define "macro" like mappings to simplify the pattern match recognitions
 
-##### DAG operand
+#### DAG operand
 
-A DAG operand can be:
+Any instance with the sub-class or class of [`class DAGOperand`](llvm-project/llvm/include/llvm/Target/Target.td#L245), wildly used sub-classes are [RegisterClass](#registerclass) and [Operand](#operand).
 
-1. Any instance with the sub-class or class of [`class DAGOperand`](llvm-project/llvm/include/llvm/Target/Target.td#L245), wildly used sub-classes are [RegisterClass](#registerclass) and [Operand](#operand)
-2. [ComplexPattern](#complexpattern), used to define self defined selection method
-
-###### RegisterClass
+##### RegisterClass
 
 Use to define a class of register that is available for register allocation.
 
@@ -298,7 +293,7 @@ Defined in [Target.td](llvm-project/llvm/include/llvm/Target/Target.td#255) and 
 2. `alignment`: alignment required of the registers when they are stored or loaded to memory
 3. `regList`: form of `(add dag_1, dag_2, ...)` in this case the `dag_i` must be sub-class or class of [`class Register`](llvm-project/llvm/include/llvm/Target/Target.td#L163). This list out all the registers in this register class
 
-###### Operand
+##### Operand
 
 Used to define address, values that can be determined while compiling other than register
 
@@ -313,25 +308,14 @@ The base class is [`class Operand`](llvm-project/llvm/include/llvm/Target/Target
    2. `(MEMri $rs1, $simm13):$addr` can be used as operand of a DAG, in this case `rs1`, `simm13` and `addr` can all be used to value variables illustrated [below](#instruction)
 4. `EncoderMethod`: self defined function for encoding
 
-###### ComplexPattern
-
-Any sub-class or class of [`class ComplexPattern`](llvm-project/llvm/include/llvm/Target/TargetSelectionDAG.td#L1999), key parameters are:
-
-1. `Ty`: value type
-2. `numops`: number of operand returned by `SelectFunc` (passed in as pointer parameter) after the first parameter.
-3. `roots`: list of possible root nodes of the sub-DAGs to match, the first parameter of `SelectFunc` is always the found possible root node
-4. `SelectFunc`: name of the self-defined selection function
-
-Note: There is still question that if `ComplexPattern` has a value. It has an element of `ValueType`. But cannot find any evidence of valuing the `ComplexPattern` node it self.
-
-##### DAG operator
+#### DAG operator
 
 A DAG operator can be:
 
 1. Any sub-class or class of [`class SDPatternOperator`](llvm-project/llvm/include/llvm/CodeGen/SDNodeProperties.td#L12), Widely used sub-classes are [SDNode](#sdnode)
 2. Some [special operators](#special-operators)
 
-###### SDNode
+##### SDNode
 
 The base class is [`class SDNode`](llvm-project/llvm/include/llvm/Target/TargetSelectionDAG.td#L332) and key parameters are:
 
@@ -339,7 +323,7 @@ The base class is [`class SDNode`](llvm-project/llvm/include/llvm/Target/TargetS
 2. `typeprof`: instance of [`class SDTypeProfile`](llvm-project/llvm/include/llvm/Target/TargetSelectionDAG.td#L97), implement number of output/input operands and constraints
 3. `Properties`: `list` of `class SDNodeProperty` (available properties are listed in [SDNodeProperties.td](llvm-project/llvm/include/llvm/CodeGen/SDNodeProperties.td))
 
-###### Special operators 
+##### Special operators 
 
 Including `ins`, `outs`, `set`, `ops` and etc which has no base class. These operators are used for special cases including:
 
@@ -348,16 +332,82 @@ Including `ins`, `outs`, `set`, `ops` and etc which has no base class. These ope
 3. `ops`: used in `MIOperandInfo` of [`class Operand`](#operand) to list out the operands of the operand
 4. `set`: used in `pattern` element of instruction to define the pattern in instruction selection
 
-##### Pattern mapping
+#### Pattern mapping
 
-###### PatFrags
+Mapping a self defined operator and its operands to a set of DAGs.
 
+##### ComplexPattern
 
-###### PatLeaf
+Any sub-class or class of [`class ComplexPattern`](llvm-project/llvm/include/llvm/Target/TargetSelectionDAG.td#L1999), key parameters are:
 
-[`class PatLeaf`](llvm-project/llvm/include/llvm/Target/TargetSelectionDAG.td#L965)
+1. `Ty`: value type of the root node
+2. `numops`: number of operand returned by `SelectFunc` (passed in as pointer parameter) after the first parameter.
+3. `roots`: list of possible root nodes of the sub-DAGs to match, the first parameter of `SelectFunc` is always the found possible root node
+4. `SelectFunc`: name of the self-defined selection function
 
-#### Instruction
+This is used to define and self-written instruction selection function to match the DAG.
+
+##### PatFrags
+
+Defined [here](llvm-project/llvm/include/llvm/Target/TargetSelectionDAG.td#L861) key parameters are:
+
+1. `ops`: a DAG with form of `(ops, operand_1, operand_2, ...)`
+2. `frags`: list of DAG that it maps to
+3. `pred`: check code for validation
+
+One of the example listed in [here](llvm-project/llvm/include/llvm/Target/TargetSelectionDAG.td#L1490) as follow:
+
+```tablegen
+def any_fadd       : PatFrags<(ops node:$lhs, node:$rhs),
+                              [(strict_fadd node:$lhs, node:$rhs),
+                               (fadd node:$lhs, node:$rhs)]>;
+```
+
+And the following instruction definition in [X86InstrAVX512.td](llvm-project/llvm/lib/Target/X86/X86InstrAVX512.td)
+
+```tablegen
+multiclass avx512_fp_scalar<bits<8> opc, string OpcodeStr,X86VectorVTInfo _,
+                            SDPatternOperator OpNode, SDNode VecNode,
+                            X86FoldableSchedWrite sched, bit IsCommutable> {
+    let ExeDomain = _.ExeDomain, Uses = [MXCSR], mayRaiseFPException = 1 in {
+        ...
+        let isCodeGenOnly = 1, Predicates = [HasAVX512] in {
+            def rr : I< 
+                opc, MRMSrcReg, (outs _.FRC:$dst),
+                (ins _.FRC:$src1, _.FRC:$src2),
+                OpcodeStr#"\t{$src2, $src1, $dst|$dst, $src1, $src2}",
+                [(set _.FRC:$dst, (OpNode _.FRC:$src1, _.FRC:$src2))]
+            >,
+            Sched<[sched]> 
+            {
+                let isCommutable = IsCommutable;
+            }
+            ...
+        }
+    }
+}
+
+multiclass avx512_binop_s_round<bits<8> opc, string OpcodeStr, SDPatternOperator OpNode,
+                                SDNode VecNode, SDNode RndNode,
+                                X86SchedWriteSizes sched, bit IsCommutable> {
+    defm SSZ : avx512_fp_scalar<opc, OpcodeStr#"ss", f32x_info, OpNode, VecNode,
+                                sched.PS.Scl, IsCommutable>,
+    ...
+}
+
+defm VADD : avx512_binop_s_round<0x58, "vadd", any_fadd, X86fadds, X86faddRnds,
+                                 SchedWriteFAddSizes, 1>;
+```
+
+From the above example we can see that `any_fadd` is used in the `pattern` parameter of [Instruction](#instruction) definition as `[(set _.FRC:$dst, (OpNode _.FRC:$src1, _.FRC:$src2))]`.
+
+The `OpNode` parameter is the `any_fadd` instance, and it will match both `(strict_fadd _.FRC:$src1, _.FRC:$src1)` pattern and `(fadd _.FRC:$src1, _.FRC:$src1)`
+
+##### PatLeaf
+
+defined [here](llvm-project/llvm/include/llvm/Target/TargetSelectionDAG.td#L965), just a convenient definition for [PatFrags](#patfrags) with 0 operand.
+
+### Instruction
 
 All instruction definition has sub-class or class of [`Instruction`](llvm-project/llvm/include/llvm/Target/Target.td#L586) and some of the key parameters are:
 
@@ -369,16 +419,75 @@ All instruction definition has sub-class or class of [`Instruction`](llvm-projec
    3. By defining variable using name `name_i`, the variable will acquire values result from compiling process
 4. `AsmString`: assembly string, using `$name_i` can acquire values result from compiling process (e.g. `st\t$ra, $addr` if allocate `rax` and `0x10000` as operator, it will print out `st\trax, 0x10000`)
 5. `pattern`: used in instruction selection: 
-   1. Rules out original DAGs that can be covered by this instruction
-   2. Original DAG using operator defined in `TargetSelectionDAG.td` with sub-class or class of `class SDNode`
-   3. Original DAG's leaf `dag_i` are defined in `Target.td` with sub-class or class of `class DAGOperand` (mostly `class Operand` or `class RegisterClass`)
-   4. User can define its own new leaf `dag_i` and `operator` with sub-class or class of `class DAGOperand` and `class SDNode` respectively
+   1. Rules out list original DAGs that can be covered by this instruction
+   2. Original DAG mainly using operator defined in [TargetSelectionDAG.td](llvm-project/llvm/include/llvm/Target/TargetSelectionDAG.td) with sub-class or class of `class SDNode`
 6. `TSFlags`: Value of `TSFlags` field in `MCInstrDesc` c++ class
 
 ### Example
 
-Using `backend_tutorial/chapters/Chapter2/Cpu0InstrFormats.td` and `backend_tutorial/chapters/Chapter2/Cpu0InstrInfo.td` as example.
+Using codes in [Cpu0InstrFormats.td](backend_tutorial/chapters/Chapter2/Cpu0InstrFormats.td) and [Cpu0InstrInfo.td](backend_tutorial/chapters/Chapter2/Cpu0InstrInfo.td) as example.
 
+```tablegen
+def SDT_Cpu0Ret          : SDTypeProfile<0, 1, [SDTCisInt<0>]>;
+
+// Return
+def Cpu0Ret : SDNode<"Cpu0ISD::Ret", SDTNone,
+                     [SDNPHasChain, SDNPOptInGlue, SDNPVariadic]>;
+```
+
+The purpose is to define a [DAG operator](#dag-operator), which is `Cpu0Ret`, in order to define a matching `pattern` for return instruction.
+
+The operand type `SDT_Cpu0Ret` I guess is supposed to be the type of `Cpu0Ret`. But for some reason it is not used.
+
+```tablegen
+// Signed Operand
+def simm16      : Operand<i32> {
+  let DecoderMethod= "DecodeSimm16";
+}
+
+// Address operand
+def mem : Operand<iPTR> {
+  let PrintMethod = "printMemOperand";
+  let MIOperandInfo = (ops GPROut, simm16);
+  let EncoderMethod = "getMemEncoding";
+}
+
+// Node immediate fits as 16-bit sign extended on target immediate.
+// e.g. addi, andi
+def immSExt16  : PatLeaf<(imm), [{ return isInt<16>(N->getSExtValue()); }]>;
+
+// Cpu0 Address Mode! SDNode frameindex could possibily be a match
+// since load and store instructions from stack used it.
+def addr : 
+  ComplexPattern<iPTR, 2, "SelectAddr", [frameindex], [SDNPWantParent]>;
+```
+
+`simm16` is defined to use as [DAG Operand](#dag-operand) of `InOperandList`, it is defined as `Operand` because it would value a field of record without a concrete value.
+
+`immSExt16` is a [PagLeaf](#patleaf)(DAG without any operand) used in `pattern` of instruction select. It shares the same `name` with `simm16` and the reason of not using `simm16` is that it added a constraint that the node has to be a 16bit int.
+
+Same as `mem` and `addr`, `mem` is defined as [DAG Operand](#dag-operand) for valuing unvalued field. `addr` is actually a [PagLeaf](#patleaf), the reason of not using `mem` is the need of adding complex matching method, which is named `SelectAddr`. They also share the same `name`.
+
+```tablegen
+class AlignedLoad<PatFrag Node> :
+  PatFrag<(ops node:$ptr), (Node node:$ptr), [{
+  LoadSDNode *LD = cast<LoadSDNode>(N);
+  return LD->getMemoryVT().getSizeInBits()/8 <= LD->getAlignment();
+}]>;
+
+class AlignedStore<PatFrag Node> :
+  PatFrag<(ops node:$val, node:$ptr), (Node node:$val, node:$ptr), [{
+  StoreSDNode *SD = cast<StoreSDNode>(N);
+  return SD->getMemoryVT().getSizeInBits()/8 <= SD->getAlignment();
+}]>;
+
+// Load/Store PatFrags.
+def load_a          : AlignedLoad<load>;
+def store_a         : AlignedStore<store>;
+```
+
+Here `load_a` and `store_a` is defined as [PatFrags](#patfrags), which simply added alignment check on the original `load` and `store`.
+​​
 # 官方教程
     
 [地址](https://llvm.org/docs/tutorial/index.html)
