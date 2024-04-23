@@ -103,7 +103,6 @@ class Cpu0Inst<dag outs, dag ins, string asmstr, list<dag> pattern>: Instruction
     let InOperandList  = ins;   // Input operands
     let AsmString   = asmstr;   // Assembly string
     let Pattern     = pattern;
-    let TSFlags{3-0}   = format; // Value in `TSFlags` field in `MCInstrDesc` class
     let DecoderNamespace = "Cpu0";
 }
 
@@ -123,7 +122,7 @@ class FA<bits<8> op, dag outs, dag ins, string asmstr,list<dag> pattern> : Cpu0I
     let TSFlags{3-0} = 1;   // Value in `TSFlags` field in `MCInstrDesc` class, this indicate A type instruction
 }
 
-class FL<bits<8> op, dag outs, dag ins, string asmstr, list<dag> pattern> : Cpu0Inst<outs, ins, asmstr, pattern>
+class FL_1<bits<8> op, dag outs, dag ins, string asmstr, list<dag> pattern> : Cpu0Inst<outs, ins, asmstr, pattern>
 {
     bits<4>  ra;
     bits<4>  rb;
@@ -137,14 +136,26 @@ class FL<bits<8> op, dag outs, dag ins, string asmstr, list<dag> pattern> : Cpu0
     let TSFlags{3-0} = 2;   // Value in `TSFlags` field in `MCInstrDesc` class, this indicate L type instruction
 }
 
+class FL_2<bits<8> op, dag outs, dag ins, string asmstr, list<dag> pattern> : Cpu0Inst<outs, ins, asmstr, pattern>
+{
+    bits<4>     ra;
+    bits<20>    addr;
+
+    let Inst{31-24}     = op;
+    let Inst{23-20}     = ra;
+    let Inst{19-0}      = addr;
+
+    let TSFlags{3-0}    = 2;   // Value in `TSFlags` field in `MCInstrDesc` class, this indicate L type instruction
+}
+
 class FJ<bits<8> op, dag outs, dag ins, string asmstr, list<dag> pattern> : Cpu0Inst<outs, ins, asmstr, pattern>
 {
     bits<24> addr;
 
-    let Inst{31-24} = op;
-    let Inst{23-0} = addr;
+    let Inst{31-24}     = op;
+    let Inst{23-0}      = addr;
 
-    let TSFlags{3-0} = 3;   // Value in `TSFlags` field in `MCInstrDesc` class, this indicate J type instruction
+    let TSFlags{3-0}    = 3;   // Value in `TSFlags` field in `MCInstrDesc` class, this indicate J type instruction
 }
 
 //===----------------------------------------------------------------------===//
@@ -153,33 +164,32 @@ class FJ<bits<8> op, dag outs, dag ins, string asmstr, list<dag> pattern> : Cpu0
 
 // Load and Store Instructions aligned
 def LD : 
-FL<0x01, (outs GPROut:$ra), (ins mem:$addr), "ld\t$ra, $addr", [(set GPROut:$ra, (load_a addr:$addr))]> 
+FL_2<0x01, (outs GPROut:$ra), (ins mem:$addr), "ld\t$ra, $addr", [(set GPROut:$ra, (load_a addr:$addr))]>,
+Sched<[IILoad]> 
 {
     let isPseudo = 0;
     let DecoderMethod = "DecodeMem";
-    let Inst{19-16} = addr{19-16};  // rb
-    let Inst{15-0}  = addr{15-0};   // imm16
 }
 def ST : 
-FL<0x01, (outs GPROut:$ra), (ins mem:$addr), "st\t$ra, $addr", [(set GPROut:$ra, (store_a addr:$addr))]> 
+FL_2<0x01, (outs GPROut:$ra), (ins mem:$addr), "st\t$ra, $addr", [(store_a GPROut:$ra, addr:$addr)]>,
+Sched<[IIStore]> 
 {
     let isPseudo = 0;
     let DecoderMethod = "DecodeMem";
-    let Inst{19-16} = addr{19-16};  // rb
-    let Inst{15-0}  = addr{15-0};   // imm16
 }
 
 // Arithmetic Instructions (ALU Immediate)
 def ADDiu : 
-FL<0x09, (outs GPROut:$ra), (ins GPROut:$rb, simm16:$imm16), "addiu\t$ra, $rb, $imm16", [(set GPROut:$ra, (add CPURegs:$rb, immSExt16:$imm16))]>
+FL_1<0x09, (outs GPROut:$ra), (ins CPURegs:$rb, simm16:$imm16), "addiu\t$ra, $rb, $imm16", [(set GPROut:$ra, (add CPURegs:$rb, immSExt16:$imm16))]>,
+Sched<[IIAlu]> 
 {
     let isReMaterializable = 1;
 }
 
 // Shift Instructions
 def JR :
-FL<0x3c, (outs), (ins GPROut:$ra), "jr\t$ra", [(brind GPROut:$ra)]>,
-
+FL_1<0x3c, (outs), (ins GPROut:$ra), "jr\t$ra", [(brind GPROut:$ra)]>, 
+Sched<[IIBranch]> 
 {
     // unused operand
     let rb = 0;
@@ -193,7 +203,8 @@ FL<0x3c, (outs), (ins GPROut:$ra), "jr\t$ra", [(brind GPROut:$ra)]>,
     let isIndirectBranch = 1;
 }
 def RET : 
-FL<0x3c, (outs), (ins GPROut:$ra), "ret\t$ra", [(brind GPROut:$ra)]>
+FL_1<0x3c, (outs), (ins GPROut:$ra), "ret\t$ra", [(brind GPROut:$ra)]>,
+Sched<[IIBranch]> 
 {
     let isReturn = 1;
     let isCodeGenOnly = 1;
@@ -203,7 +214,13 @@ FL<0x3c, (outs), (ins GPROut:$ra), "ret\t$ra", [(brind GPROut:$ra)]>
 
 /// No operation
 def NOP : 
-FJ<0, (outs), (ins), "nop", []>
+FJ<0, (outs), (ins), "nop", []>,
+Sched<[IIAlu]> 
 {
     let addr = 0;
+}
+
+def : InstRW<[IIAlu], (instrs COPY)>
+{
+    let SchedModel = Cpu0genericModel;
 }

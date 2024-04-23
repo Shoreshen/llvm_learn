@@ -115,6 +115,18 @@ class Sched<list<SchedReadWrite> schedrw> {
 Back to the [example](#example), the `IMUL32rm` instruction's attach schedule class are defined as follow:
 
 ```tablegen
+class BinOpRM<bits<8> o, string m, string args, X86TypeInfo t, dag out, list<dag> p>
+  : ITy<o, MRMSrcMem, t, out, (ins t.RegClass:$src1, t.MemOperand:$src2), m,
+        args, p>,
+    Sched<[WriteALU.Folded, WriteALU.ReadAfterFold]> 
+{
+    let mayLoad = 1;
+}
+class BinOpRM_RF<bits<8> o, string m, X86TypeInfo t, SDPatternOperator node, bit ndd = 0>
+  : BinOpRM<o, m, !if(!eq(ndd, 0), binop_args, binop_ndd_args), t, (outs t.RegClass:$dst),
+            [(set t.RegClass:$dst, EFLAGS, (node t.RegClass:$src1,
+             (t.LoadNode addr:$src2)))]>, DefEFLAGS, NDD<ndd>;
+
 class IMulOpRM_RF<X86TypeInfo t, X86FoldableSchedWrite sched, bit ndd = 0>
 : BinOpRM_RF<0xAF, "imul", t, X86smul_flag, ndd> {
     let Form = MRMSrcMem;

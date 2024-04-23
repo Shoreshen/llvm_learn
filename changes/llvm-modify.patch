@@ -1,5 +1,5 @@
 diff --git a/llvm/CMakeLists.txt b/llvm/CMakeLists.txt
-index d511376e18ba..ba99a1d01d73 100644
+index 43181af3bc19..608be9ba0d7d 100644
 --- a/llvm/CMakeLists.txt
 +++ b/llvm/CMakeLists.txt
 @@ -487,6 +487,7 @@ set(LLVM_ALL_TARGETS
@@ -108,7 +108,7 @@ index 0ac4e7a57759..4b2c046de197 100644
      break;
    }
 diff --git a/llvm/lib/TargetParser/Triple.cpp b/llvm/lib/TargetParser/Triple.cpp
-index 77fdf31d4865..52a2b153dfc5 100644
+index 2c5aee3dfb2f..4ce99ec13e9d 100644
 --- a/llvm/lib/TargetParser/Triple.cpp
 +++ b/llvm/lib/TargetParser/Triple.cpp
 @@ -70,6 +70,7 @@ StringRef Triple::getArchTypeName(ArchType Kind) {
@@ -136,7 +136,7 @@ index 77fdf31d4865..52a2b153dfc5 100644
      .Case("loongarch32", loongarch32)
      .Case("loongarch64", loongarch64)
      .Case("dxil", dxil)
-@@ -571,6 +573,7 @@ static Triple::ArchType parseArch(StringRef ArchName) {
+@@ -573,6 +575,7 @@ static Triple::ArchType parseArch(StringRef ArchName) {
            .Case("wasm32", Triple::wasm32)
            .Case("wasm64", Triple::wasm64)
            .Case("csky", Triple::csky)
@@ -144,7 +144,7 @@ index 77fdf31d4865..52a2b153dfc5 100644
            .Case("loongarch32", Triple::loongarch32)
            .Case("loongarch64", Triple::loongarch64)
            .Cases("dxil", "dxilv1.0", "dxilv1.1", "dxilv1.2", "dxilv1.3",
-@@ -876,6 +879,7 @@ static Triple::ObjectFormatType getDefaultFormat(const Triple &T) {
+@@ -878,6 +881,7 @@ static Triple::ObjectFormatType getDefaultFormat(const Triple &T) {
    case Triple::hexagon:
    case Triple::hsail64:
    case Triple::hsail:
@@ -152,7 +152,7 @@ index 77fdf31d4865..52a2b153dfc5 100644
    case Triple::kalimba:
    case Triple::lanai:
    case Triple::le32:
-@@ -1518,6 +1522,7 @@ unsigned Triple::getArchPointerBitWidth(llvm::Triple::ArchType Arch) {
+@@ -1520,6 +1524,7 @@ unsigned Triple::getArchPointerBitWidth(llvm::Triple::ArchType Arch) {
    case llvm::Triple::thumbeb:
    case llvm::Triple::wasm32:
    case llvm::Triple::x86:
@@ -160,7 +160,7 @@ index 77fdf31d4865..52a2b153dfc5 100644
    case llvm::Triple::xcore:
    case llvm::Triple::xtensa:
      return 32;
-@@ -1601,6 +1606,7 @@ Triple Triple::get32BitArchVariant() const {
+@@ -1603,6 +1608,7 @@ Triple Triple::get32BitArchVariant() const {
    case Triple::riscv32:
    case Triple::shave:
    case Triple::sparc:
@@ -168,7 +168,7 @@ index 77fdf31d4865..52a2b153dfc5 100644
    case Triple::sparcel:
    case Triple::spir:
    case Triple::spirv32:
-@@ -1658,6 +1664,7 @@ Triple Triple::get64BitArchVariant() const {
+@@ -1660,6 +1666,7 @@ Triple Triple::get64BitArchVariant() const {
    case Triple::m68k:
    case Triple::msp430:
    case Triple::r600:
@@ -176,7 +176,7 @@ index 77fdf31d4865..52a2b153dfc5 100644
    case Triple::shave:
    case Triple::sparcel:
    case Triple::tce:
-@@ -1767,6 +1774,7 @@ Triple Triple::getBigEndianArchVariant() const {
+@@ -1769,6 +1776,7 @@ Triple Triple::getBigEndianArchVariant() const {
    case Triple::ve:
    case Triple::csky:
    case Triple::xtensa:
@@ -184,7 +184,7 @@ index 77fdf31d4865..52a2b153dfc5 100644
  
    // ARM is intentionally unsupported here, changing the architecture would
    // drop any arch suffixes.
-@@ -1878,6 +1886,7 @@ bool Triple::isLittleEndian() const {
+@@ -1880,6 +1888,7 @@ bool Triple::isLittleEndian() const {
    case Triple::x86_64:
    case Triple::xcore:
    case Triple::xtensa:

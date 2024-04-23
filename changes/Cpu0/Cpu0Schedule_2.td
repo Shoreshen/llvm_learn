@@ -63,20 +63,20 @@ def IMULDIV : ProcResource<1>{
 let SchedModel = Cpu0genericModel in {
     def : WriteRes<IIAlu,       [ALU]>{ 
         let Latency = 1; 
-    };
+    }
     def : WriteRes<II_CLO,      [ALU]>{ 
         let Latency = 1; 
-    };
+    }
     def : WriteRes<II_CLZ,      [ALU]>{ 
         let Latency = 1; 
-    };
+    }
     def : WriteRes<IILoad,      [ALU]>{ 
         let Latency = 3; 
-    };
+    }
     def : WriteRes<IIStore,     [ALU]>{ 
         let Latency = 1; 
-    };
+    }
     def : WriteRes<IIBranch,    [ALU]>{ 
         let Latency = 1; 
-    };
+    }
 }
