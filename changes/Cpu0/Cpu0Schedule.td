@@ -31,7 +31,7 @@ def Cpu0genericModel : SchedMachineModel {
 //===----------------------------------------------------------------------===//
 // process resources
 //===----------------------------------------------------------------------===//
-def ALU     : ProcResource<1>{
+def ALU : ProcResource<1>{
     /*
         1. `BufferSize = -1`:
             This means the resource shares reservation station with CPU (out-of-order processor's instruction buffer).
