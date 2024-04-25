@@ -528,10 +528,11 @@ Here `load_a` and `store_a` is defined as [PatFrags](#patfrags), which simply ad
 4. 系统调用层：负责处理与操作系统交互，实现对NPU动态链接库的加载和执行。
 
 ### 构建过程
-源代码到LLVM IR：使用LLVM前端将源代码转换成LLVM IR。
-LLVM IR到宿主机汇编：将部分LLVM IR转换成适用于宿主机的汇编代码。
-LLVM IR到NPU汇编：提取特定函数生成NPU汇编，并封装成动态链接库。
-链接和装载：将生成的宿主机汇编代码编译链接成可执行文件，将NPU代码编译成动态库。
+
+1. 源代码到LLVM IR：使用LLVM前端将源代码转换成LLVM IR。
+2. LLVM IR到宿主机汇编：将部分LLVM IR转换成适用于宿主机的汇编代码。
+3. LLVM IR到NPU汇编：提取特定函数生成NPU汇编，并封装成动态链接库。
+4. 链接和装载：将生成的宿主机汇编代码编译链接成可执行文件，将NPU代码编译成动态库。
 
 ## 接口
 
