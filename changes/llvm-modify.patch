@@ -56,10 +56,10 @@ index 56b5d4e399c6..f6c7620dc516 100644
  enum : unsigned {
    // Definitions from LoongArch ELF psABI v2.01.
 diff --git a/llvm/include/llvm/Object/ELFObjectFile.h b/llvm/include/llvm/Object/ELFObjectFile.h
-index 1d457be93741..0226e646229e 100644
+index 4494d9b96189..fd683f6ee9ab 100644
 --- a/llvm/include/llvm/Object/ELFObjectFile.h
 +++ b/llvm/include/llvm/Object/ELFObjectFile.h
-@@ -1264,6 +1264,8 @@ StringRef ELFObjectFile<ELFT>::getFileFormatName() const {
+@@ -1263,6 +1263,8 @@ StringRef ELFObjectFile<ELFT>::getFileFormatName() const {
        return "elf32-loongarch";
      case ELF::EM_XTENSA:
        return "elf32-xtensa";
@@ -68,7 +68,7 @@ index 1d457be93741..0226e646229e 100644
      default:
        return "elf32-unknown";
      }
-@@ -1396,6 +1398,8 @@ template <class ELFT> Triple::ArchType ELFObjectFile<ELFT>::getArch() const {
+@@ -1395,6 +1397,8 @@ template <class ELFT> Triple::ArchType ELFObjectFile<ELFT>::getArch() const {
  
    case ELF::EM_XTENSA:
      return Triple::xtensa;

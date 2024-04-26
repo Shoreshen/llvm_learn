@@ -499,6 +499,15 @@ def store_a         : AlignedStore<store>;
 ```
 
 Here `load_a` and `store_a` is defined as [PatFrags](#patfrags), which simply added alignment check on the original `load` and `store`.
+
+## Calling convention
+
+Used to define:
+
+1. The order of parameter allocation.
+2. Where parameters and return values are placed (that is, on the stack or in registers).
+3. Which registers may be used.
+4. Whether the caller or callee unwinds the stack.
 ​​
 # 官方教程
     
