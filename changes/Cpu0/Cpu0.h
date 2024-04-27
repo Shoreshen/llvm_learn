@@ -19,8 +19,8 @@
 #include "llvm/Target/TargetMachine.h"
 
 namespace llvm {
-  class Cpu0TargetMachine;
-  class FunctionPass;
+    class Cpu0TargetMachine;
+    class FunctionPass;
 
 } // end namespace llvm;
 

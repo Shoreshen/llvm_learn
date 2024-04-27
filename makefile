@@ -1,3 +1,7 @@
+# $@  表示目标文件
+# $^  表示所有的依赖文件
+# $<  表示第一个依赖文件
+# $?  表示比目标还要新的依赖文件列表
 LLVM_NEW_FILES = $(shell cd llvm-project; git status --short | grep '^??' | awk '{printf "%s ", $$2}')
 BRANCH = $(shell git symbolic-ref --short HEAD)
 # git ====================================================================================
@@ -35,6 +39,11 @@ PHONY += build config_clang config_cpu0 save_change restore_change
 view_dag:
 	clang -S -emit-llvm ./test/mytest.c -o mytest.ll -O3
 	./llvm-project/build/bin/llc -march=x86 -view-dag-combine1-dags -debug mytest.ll &>log
+
+mytest.s: ./test/mytest.c ./test/mytest.h
+	./llvm-project/build/bin/clang --target=riscv64-unknown-elf -S -O3 -o $@ $<
+mytest.o:mytest.s
+	./llvm-project/build/bin/llvm-mc -filetype=obj -triple=riscv32 --arch=riscv32 $< -o $@
 
 PHONY += view_dag
 # clean ==================================================================================

@@ -56,8 +56,8 @@ static std::string computeDataLayout(const Triple &TT, StringRef CPU, const Targ
   return Ret;
 }
 
-static Reloc::Model getEffectiveRelocModel(bool JIT, Optional<Reloc::Model> RM) {
-    if (!RM.hasValue() || JIT)
+static Reloc::Model getEffectiveRelocModel(bool JIT, std::optional<Reloc::Model> RM) {
+    if (!RM || JIT)
         return Reloc::Static;
     return *RM;
 }
@@ -73,11 +73,10 @@ Cpu0TargetMachine::Cpu0TargetMachine(
     const Target &T, const Triple &TT,
     StringRef CPU, StringRef FS,
     const TargetOptions &Options,
-    Optional<Reloc::Model> RM,
-    Optional<CodeModel::Model> CM,
-    CodeGenOpt::Level OL, bool JIT
-) : 
-LLVMTargetMachine(
+    std::optional<Reloc::Model> RM,
+    std::optional<CodeModel::Model> CM,
+    CodeGenOptLevel OL, bool JIT
+) : LLVMTargetMachine(
     T, 
     computeDataLayout(TT, CPU, Options), 
     TT,
@@ -104,7 +103,7 @@ const Cpu0Subtarget* Cpu0TargetMachine::getSubtargetImpl(const Function &F) cons
         // creation will depend on the TM and the code generation flags on the
         // function that reside in TargetOptions.
         resetTargetOptions(F);
-        I = std::make_unique<Cpu0Subtarget>(TargetTriple, CPU, FS, isLittle,*this);
+        I = std::make_unique<Cpu0Subtarget>(TargetTriple, CPU, FS, *this);
     }
     return I.get();
 }
@@ -114,19 +113,15 @@ namespace {
 /// Cpu0 Code Generator Pass Configuration Options.
 class Cpu0PassConfig : public TargetPassConfig {
 public:
-  Cpu0PassConfig(Cpu0TargetMachine &TM, PassManagerBase &PM)
-    : TargetPassConfig(TM, PM) {}
+    Cpu0PassConfig(Cpu0TargetMachine &TM, PassManagerBase &PM)
+        : TargetPassConfig(TM, PM) {}
 
-  Cpu0TargetMachine &getCpu0TargetMachine() const {
-    return getTM<Cpu0TargetMachine>();
-  }
-
-  const Cpu0Subtarget &getCpu0Subtarget() const {
-    return *getCpu0TargetMachine().getSubtargetImpl();
-  }
+    Cpu0TargetMachine &getCpu0TargetMachine() const {
+        return getTM<Cpu0TargetMachine>();
+    }
 };
 } // namespace
 
 TargetPassConfig *Cpu0TargetMachine::createPassConfig(PassManagerBase &PM) {
-  return new Cpu0PassConfig(*this, PM);
+    return new Cpu0PassConfig(*this, PM);
 }

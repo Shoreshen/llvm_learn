@@ -21,6 +21,7 @@ include "llvm/Target/Target.td"
 
 include "Cpu0RegisterInfo.td"
 include "Cpu0Schedule.td"
+include "Cpu0CallingConv.td"
 include "Cpu0InstrInfo.td"
 
 //===----------------------------------------------------------------------===//

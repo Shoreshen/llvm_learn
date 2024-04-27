@@ -30,15 +30,15 @@ SDNode<
 // Signed 16bit integer
 def simm16 : 
 Operand<i32> {
-  let DecoderMethod= "DecodeSimm16";        // self defined function for decoding
+    let DecoderMethod= "DecodeSimm16";        // self defined function for decoding
 }
 
 // Address operand
 def mem : 
 Operand<iPTR> {
-  let PrintMethod = "printMemOperand";      // self defined function for printing
-  let MIOperandInfo = (ops GPROut, simm16); // Define sub operands
-  let EncoderMethod = "getMemEncoding";     // self defined function for encoding
+    let PrintMethod = "printMemOperand";      // self defined function for printing
+    let MIOperandInfo = (ops GPROut, simm16); // Define sub operands
+    let EncoderMethod = "getMemEncoding";     // self defined function for encoding
 }
 
 //===----------------------------------------------------------------------===//

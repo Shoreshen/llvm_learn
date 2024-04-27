@@ -17,6 +17,7 @@
 
 #include "Cpu0Subtarget.h"
 #include "llvm/CodeGen/Passes.h"
+#include "llvm/Support/CodeGen.h"
 #include "llvm/CodeGen/SelectionDAGISel.h"
 #include "llvm/CodeGen/TargetFrameLowering.h"
 #include "llvm/Target/TargetMachine.h"
@@ -31,8 +32,8 @@ class Cpu0TargetMachine : public LLVMTargetMachine {
 public:
     Cpu0TargetMachine(const Target &T, const Triple &TT, StringRef CPU,
                         StringRef FS, const TargetOptions &Options,
-                        Optional<Reloc::Model> RM, Optional<CodeModel::Model> CM,
-                        CodeGenOpt::Level OL, bool JIT);
+                        std::optional<Reloc::Model> RM, std::optional<CodeModel::Model> CM,
+                        CodeGenOptLevel OL, bool JIT);
 
     const Cpu0Subtarget *getSubtargetImpl() = delete; //only have one sub-target
     const Cpu0Subtarget *getSubtargetImpl(const Function &F) const override;

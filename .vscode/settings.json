@@ -25,7 +25,25 @@
         "atomic": "cpp",
         "exception": "cpp",
         "stdexcept": "cpp",
-        "utility": "cpp"
+        "utility": "cpp",
+        "__split_buffer": "cpp",
+        "array": "cpp",
+        "deque": "cpp",
+        "hash_map": "cpp",
+        "hash_set": "cpp",
+        "forward_list": "cpp",
+        "list": "cpp",
+        "map": "cpp",
+        "queue": "cpp",
+        "regex": "cpp",
+        "set": "cpp",
+        "span": "cpp",
+        "stack": "cpp",
+        "string_view": "cpp",
+        "unordered_set": "cpp",
+        "vector": "cpp",
+        "any": "cpp",
+        "ranges": "cpp"
     },
     "C_Cpp.default.compilerPath": "/usr/bin/gcc"
 }
