@@ -21,8 +21,7 @@
 
 #include "mytest.h"
 
-#pragma clang optimize off
-int run_on_npu_riscv()
+void run_on_npu_riscv()
 {
     int a = 23;
     push_to_npu_buffer(a);
@@ -30,7 +29,7 @@ int run_on_npu_riscv()
         "add ra, 17 , 1\n"
         "dddbaaa\n"
     );
-    return 0;
+    return;
 }
-#pragma clang optimize on
+
 

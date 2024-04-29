@@ -107,6 +107,28 @@ index 0ac4e7a57759..4b2c046de197 100644
    default:
      break;
    }
+diff --git a/llvm/lib/Target/RISCV/MCTargetDesc/RISCVMCCodeEmitter.cpp b/llvm/lib/Target/RISCV/MCTargetDesc/RISCVMCCodeEmitter.cpp
+index 5ea386c3c32a..aadb68bf0319 100644
+--- a/llvm/lib/Target/RISCV/MCTargetDesc/RISCVMCCodeEmitter.cpp
++++ b/llvm/lib/Target/RISCV/MCTargetDesc/RISCVMCCodeEmitter.cpp
+@@ -141,7 +141,16 @@ void RISCVMCCodeEmitter::expandFunctionCall(const MCInst &MI,
+   assert(Func.isExpr() && "Expected expression");
+ 
+   const MCExpr *CallExpr = Func.getExpr();
+-
++  CallExpr->dump();
++  if (MCExpr::Target == CallExpr->getKind()) {
++    const MCTargetExpr &TE = cast<MCTargetExpr>(*CallExpr);
++    const RISCVMCExpr &RE = cast<RISCVMCExpr>(TE);
++    if (MCExpr::SymbolRef == RE.getSubExpr()->getKind()) {
++      const MCSymbolRefExpr &SRE = cast<MCSymbolRefExpr>(*RE.getSubExpr());
++      StringRef Name = SRE.getSymbol().getName();
++      int a = 3;
++    }
++  }
+   // Emit AUIPC Ra, Func with R_RISCV_CALL relocation type.
+   TmpInst = MCInstBuilder(RISCV::AUIPC).addReg(Ra).addExpr(CallExpr);
+   Binary = getBinaryCodeForInstr(TmpInst, Fixups, STI);
 diff --git a/llvm/lib/TargetParser/Triple.cpp b/llvm/lib/TargetParser/Triple.cpp
 index 2c5aee3dfb2f..4ce99ec13e9d 100644
 --- a/llvm/lib/TargetParser/Triple.cpp

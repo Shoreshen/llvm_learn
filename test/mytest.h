@@ -1,5 +1,2 @@
-#pragma clang optimize off
-static void run_on_npu(char* str) { return; }
-#pragma clang optimize on
-
-static void push_to_npu_buffer(int a){ return; }
+void __attribute__((noinline)) run_on_npu(volatile char* str);
+void __attribute__((noinline)) push_to_npu_buffer(volatile int a);

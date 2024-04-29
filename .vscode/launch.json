@@ -144,7 +144,7 @@
                 "-o",
                 "mytest.o"
             ],
-            "stopAtEntry": true,
+            "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
             "externalConsole": false,

@@ -40,15 +40,22 @@ view_dag:
 	clang -S -emit-llvm ./test/mytest.c -o mytest.ll -O3
 	./llvm-project/build/bin/llc -march=x86 -view-dag-combine1-dags -debug mytest.ll &>log
 
-mytest.s: ./test/mytest.c ./test/mytest.h
-	./llvm-project/build/bin/clang --target=riscv64-unknown-elf -S -O3 -o $@ $<
+mytest.ll: ./test/mytest.c ./test/mytest.h
+	./llvm-project/build/bin/clang --target=riscv32 -S -emit-llvm -O3 -o $@ $<
+
+mytest.s: mytest.ll
+	./llvm-project/build/bin/llc -march=riscv32 -o $@ $<
+
 mytest.o:mytest.s
 	./llvm-project/build/bin/llvm-mc -filetype=obj -triple=riscv32 --arch=riscv32 $< -o $@
+
+dumpmytest:
+	./llvm-project/build/bin/llvm-objdump -d mytest.o
 
 PHONY += view_dag
 # clean ==================================================================================
 clean:
-	-rm *.bc *.ll *.s *.out log
+	-rm *.bc *.ll *.s *.out log *.o
 
 PHONY += clean
 # ========================================================================================
