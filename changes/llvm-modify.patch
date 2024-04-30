@@ -24,7 +24,7 @@ index bf1b110245bb..7891ef0aea92 100644
    message(FATAL_ERROR "Unknown architecture ${LLVM_NATIVE_ARCH}")
  endif ()
 diff --git a/llvm/include/llvm/BinaryFormat/ELF.h b/llvm/include/llvm/BinaryFormat/ELF.h
-index 56b5d4e399c6..f6c7620dc516 100644
+index f296acc2ca4b..a4b43f7117c2 100644
 --- a/llvm/include/llvm/BinaryFormat/ELF.h
 +++ b/llvm/include/llvm/BinaryFormat/ELF.h
 @@ -320,6 +320,7 @@ enum {
@@ -56,10 +56,10 @@ index 56b5d4e399c6..f6c7620dc516 100644
  enum : unsigned {
    // Definitions from LoongArch ELF psABI v2.01.
 diff --git a/llvm/include/llvm/Object/ELFObjectFile.h b/llvm/include/llvm/Object/ELFObjectFile.h
-index 4494d9b96189..fd683f6ee9ab 100644
+index 8cc09e7fd7d5..7ddf49c8c99d 100644
 --- a/llvm/include/llvm/Object/ELFObjectFile.h
 +++ b/llvm/include/llvm/Object/ELFObjectFile.h
-@@ -1263,6 +1263,8 @@ StringRef ELFObjectFile<ELFT>::getFileFormatName() const {
+@@ -1271,6 +1271,8 @@ StringRef ELFObjectFile<ELFT>::getFileFormatName() const {
        return "elf32-loongarch";
      case ELF::EM_XTENSA:
        return "elf32-xtensa";
@@ -68,7 +68,7 @@ index 4494d9b96189..fd683f6ee9ab 100644
      default:
        return "elf32-unknown";
      }
-@@ -1395,6 +1397,8 @@ template <class ELFT> Triple::ArchType ELFObjectFile<ELFT>::getArch() const {
+@@ -1403,6 +1405,8 @@ template <class ELFT> Triple::ArchType ELFObjectFile<ELFT>::getArch() const {
  
    case ELF::EM_XTENSA:
      return Triple::xtensa;
@@ -108,7 +108,7 @@ index 0ac4e7a57759..4b2c046de197 100644
      break;
    }
 diff --git a/llvm/lib/Target/RISCV/MCTargetDesc/RISCVMCCodeEmitter.cpp b/llvm/lib/Target/RISCV/MCTargetDesc/RISCVMCCodeEmitter.cpp
-index 5ea386c3c32a..1283943ae771 100644
+index 5ea386c3c32a..d973400a5a83 100644
 --- a/llvm/lib/Target/RISCV/MCTargetDesc/RISCVMCCodeEmitter.cpp
 +++ b/llvm/lib/Target/RISCV/MCTargetDesc/RISCVMCCodeEmitter.cpp
 @@ -28,7 +28,9 @@
@@ -131,12 +131,10 @@ index 5ea386c3c32a..1283943ae771 100644
  // Expand PseudoCALL(Reg), PseudoTAIL and PseudoJump to AUIPC and JALR with
  // relocation types. We expand those pseudo-instructions while encoding them,
  // meaning AUIPC and JALR won't go through RISC-V MC to MC compressed
-@@ -141,7 +145,44 @@ void RISCVMCCodeEmitter::expandFunctionCall(const MCInst &MI,
-   assert(Func.isExpr() && "Expected expression");
+@@ -142,6 +146,43 @@ void RISCVMCCodeEmitter::expandFunctionCall(const MCInst &MI,
  
    const MCExpr *CallExpr = Func.getExpr();
--
-+  CallExpr->dump();
+ 
 +  if (MCExpr::Target == CallExpr->getKind()) {
 +    const MCTargetExpr &TE = cast<MCTargetExpr>(*CallExpr);
 +    const RISCVMCExpr &RE = cast<RISCVMCExpr>(TE);

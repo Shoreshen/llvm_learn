@@ -62,7 +62,7 @@ mytest_comp.bc: ./test/mytest.c
 mytest_comp.ll: mytest_comp.bc comp.out
 	./comp.out -ll $@ $<
 
-mytest_comp.s: mytest.ll
+mytest_comp.s: mytest_comp.ll
 	./llvm-project/build/bin/llc -march=riscv32 -o $@ $<
 
 mytest_comp.o:mytest_comp.s
