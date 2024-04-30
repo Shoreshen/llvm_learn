@@ -108,10 +108,30 @@ index 0ac4e7a57759..4b2c046de197 100644
      break;
    }
 diff --git a/llvm/lib/Target/RISCV/MCTargetDesc/RISCVMCCodeEmitter.cpp b/llvm/lib/Target/RISCV/MCTargetDesc/RISCVMCCodeEmitter.cpp
-index 5ea386c3c32a..aadb68bf0319 100644
+index 5ea386c3c32a..1283943ae771 100644
 --- a/llvm/lib/Target/RISCV/MCTargetDesc/RISCVMCCodeEmitter.cpp
 +++ b/llvm/lib/Target/RISCV/MCTargetDesc/RISCVMCCodeEmitter.cpp
-@@ -141,7 +141,16 @@ void RISCVMCCodeEmitter::expandFunctionCall(const MCInst &MI,
+@@ -28,7 +28,9 @@
+ #include "llvm/Support/Casting.h"
+ #include "llvm/Support/EndianStream.h"
+ #include "llvm/Support/raw_ostream.h"
+-
++#include <fstream>
++#include <sstream>
++#include <string>
+ using namespace llvm;
+ 
+ #define DEBUG_TYPE "mccodeemitter"
+@@ -108,6 +110,8 @@ MCCodeEmitter *llvm::createRISCVMCCodeEmitter(const MCInstrInfo &MCII,
+   return new RISCVMCCodeEmitter(Ctx, MCII);
+ }
+ 
++std::map<std::string, std::string> param_map;
++
+ // Expand PseudoCALL(Reg), PseudoTAIL and PseudoJump to AUIPC and JALR with
+ // relocation types. We expand those pseudo-instructions while encoding them,
+ // meaning AUIPC and JALR won't go through RISC-V MC to MC compressed
+@@ -141,7 +145,44 @@ void RISCVMCCodeEmitter::expandFunctionCall(const MCInst &MI,
    assert(Func.isExpr() && "Expected expression");
  
    const MCExpr *CallExpr = Func.getExpr();
@@ -123,7 +143,35 @@ index 5ea386c3c32a..aadb68bf0319 100644
 +    if (MCExpr::SymbolRef == RE.getSubExpr()->getKind()) {
 +      const MCSymbolRefExpr &SRE = cast<MCSymbolRefExpr>(*RE.getSubExpr());
 +      StringRef Name = SRE.getSymbol().getName();
-+      int a = 3;
++      if (!Name.str().compare(0, 10, "run_on_npu", 0, 10)) {
++        if (param_map.size() == 0) {
++          std::ifstream file("param_map.txt");
++          if (!file.is_open()) {
++            printf("Unable to open param_map.txt\n");
++            exit(1);
++          }
++          std::string line;
++          while (getline(file, line)) {
++            std::istringstream tokenStream(line);
++            std::string part;
++            std::vector<std::string> parts;
++            while (getline(tokenStream, part, '|')) {
++              parts.push_back(part);
++            }
++            if (parts.size() != 3) {
++              printf("Invalid line in param_map.txt\n");
++              exit(1);
++            }
++            param_map[parts[0]] = parts[2];
++          }
++        }
++        std::string bc = param_map[Name.str()];
++        std::istringstream iss(bc);
++        while (iss >> Binary) {
++          support::endian::write(CB, Binary, llvm::endianness::little);
++        }
++        return;
++      }
 +    }
 +  }
    // Emit AUIPC Ra, Func with R_RISCV_CALL relocation type.

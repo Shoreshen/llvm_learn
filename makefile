@@ -4,6 +4,10 @@
 # $?  表示比目标还要新的依赖文件列表
 LLVM_NEW_FILES = $(shell cd llvm-project; git status --short | grep '^??' | awk '{printf "%s ", $$2}')
 BRANCH = $(shell git symbolic-ref --short HEAD)
+SRC_C = $(filter-out ./src/main.cpp, $(wildcard ./src/*.cpp))
+OBJ_C = $(patsubst %.cpp,%.o,$(SRC_C))
+SRC_H = $(wildcard ./src/*.h)
+CFLAGS = -m64 -g -lLLVM -static-libstdc++
 # git ====================================================================================
 sub_pull:
 	git submodule foreach --recursive 'git pull'
@@ -49,13 +53,33 @@ mytest.s: mytest.ll
 mytest.o:mytest.s
 	./llvm-project/build/bin/llvm-mc -filetype=obj -triple=riscv32 --arch=riscv32 $< -o $@
 
-dumpmytest:
+dumpmytest:mytest.o
 	./llvm-project/build/bin/llvm-objdump -d mytest.o
 
-PHONY += view_dag
+mytest_comp.bc: ./test/mytest.c
+	./llvm-project/build/bin/clang --target=riscv32 -emit-llvm -O3 -c $< -o $@
+
+mytest_comp.ll: mytest_comp.bc comp.out
+	./comp.out -ll $@ $<
+
+mytest_comp.s: mytest.ll
+	./llvm-project/build/bin/llc -march=riscv32 -o $@ $<
+
+mytest_comp.o:mytest_comp.s
+	./llvm-project/build/bin/llvm-mc -filetype=obj -triple=riscv32 --arch=riscv32 $< -o $@
+
+PHONY += view_dag dumpmytest
+# Compiler ===============================================================================
+$(OBJ_C):%.o:%.cpp %.h ./src/util.h
+	g++ $(CFLAGS) -c $< -o $@
+./src/main.o: ./src/main.cpp $(SRC_H) ./src/util.h
+	g++ $(CFLAGS) -c ./src/main.cpp -o $@
+comp.out:./src/main.o $(OBJ_C)
+	g++ $(OBJ_C) $< $(CFLAGS) -o $@
+
 # clean ==================================================================================
 clean:
-	-rm *.bc *.ll *.s *.out log *.o
+	-rm *.bc *.ll *.s *.out log *.o src/*.o
 
 PHONY += clean
 # ========================================================================================
