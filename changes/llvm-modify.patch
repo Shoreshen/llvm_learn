@@ -1,5 +1,5 @@
 diff --git a/llvm/CMakeLists.txt b/llvm/CMakeLists.txt
-index 43181af3bc19..608be9ba0d7d 100644
+index c06e661573ed..4a2f0a838517 100644
 --- a/llvm/CMakeLists.txt
 +++ b/llvm/CMakeLists.txt
 @@ -487,6 +487,7 @@ set(LLVM_ALL_TARGETS
@@ -108,7 +108,7 @@ index 0ac4e7a57759..4b2c046de197 100644
      break;
    }
 diff --git a/llvm/lib/Target/RISCV/MCTargetDesc/RISCVMCCodeEmitter.cpp b/llvm/lib/Target/RISCV/MCTargetDesc/RISCVMCCodeEmitter.cpp
-index 5ea386c3c32a..d973400a5a83 100644
+index 0863345b0c6d..d9ad03143a08 100644
 --- a/llvm/lib/Target/RISCV/MCTargetDesc/RISCVMCCodeEmitter.cpp
 +++ b/llvm/lib/Target/RISCV/MCTargetDesc/RISCVMCCodeEmitter.cpp
 @@ -28,7 +28,9 @@
@@ -131,7 +131,7 @@ index 5ea386c3c32a..d973400a5a83 100644
  // Expand PseudoCALL(Reg), PseudoTAIL and PseudoJump to AUIPC and JALR with
  // relocation types. We expand those pseudo-instructions while encoding them,
  // meaning AUIPC and JALR won't go through RISC-V MC to MC compressed
-@@ -142,6 +146,43 @@ void RISCVMCCodeEmitter::expandFunctionCall(const MCInst &MI,
+@@ -146,6 +150,43 @@ void RISCVMCCodeEmitter::expandFunctionCall(const MCInst &MI,
  
    const MCExpr *CallExpr = Func.getExpr();
  
@@ -176,7 +176,7 @@ index 5ea386c3c32a..d973400a5a83 100644
    TmpInst = MCInstBuilder(RISCV::AUIPC).addReg(Ra).addExpr(CallExpr);
    Binary = getBinaryCodeForInstr(TmpInst, Fixups, STI);
 diff --git a/llvm/lib/TargetParser/Triple.cpp b/llvm/lib/TargetParser/Triple.cpp
-index 2c5aee3dfb2f..4ce99ec13e9d 100644
+index f3f244c814e7..a845e88bab08 100644
 --- a/llvm/lib/TargetParser/Triple.cpp
 +++ b/llvm/lib/TargetParser/Triple.cpp
 @@ -70,6 +70,7 @@ StringRef Triple::getArchTypeName(ArchType Kind) {
@@ -220,7 +220,7 @@ index 2c5aee3dfb2f..4ce99ec13e9d 100644
    case Triple::kalimba:
    case Triple::lanai:
    case Triple::le32:
-@@ -1520,6 +1524,7 @@ unsigned Triple::getArchPointerBitWidth(llvm::Triple::ArchType Arch) {
+@@ -1526,6 +1530,7 @@ unsigned Triple::getArchPointerBitWidth(llvm::Triple::ArchType Arch) {
    case llvm::Triple::thumbeb:
    case llvm::Triple::wasm32:
    case llvm::Triple::x86:
@@ -228,7 +228,7 @@ index 2c5aee3dfb2f..4ce99ec13e9d 100644
    case llvm::Triple::xcore:
    case llvm::Triple::xtensa:
      return 32;
-@@ -1603,6 +1608,7 @@ Triple Triple::get32BitArchVariant() const {
+@@ -1609,6 +1614,7 @@ Triple Triple::get32BitArchVariant() const {
    case Triple::riscv32:
    case Triple::shave:
    case Triple::sparc:
@@ -236,7 +236,7 @@ index 2c5aee3dfb2f..4ce99ec13e9d 100644
    case Triple::sparcel:
    case Triple::spir:
    case Triple::spirv32:
-@@ -1660,6 +1666,7 @@ Triple Triple::get64BitArchVariant() const {
+@@ -1666,6 +1672,7 @@ Triple Triple::get64BitArchVariant() const {
    case Triple::m68k:
    case Triple::msp430:
    case Triple::r600:
@@ -244,7 +244,7 @@ index 2c5aee3dfb2f..4ce99ec13e9d 100644
    case Triple::shave:
    case Triple::sparcel:
    case Triple::tce:
-@@ -1769,6 +1776,7 @@ Triple Triple::getBigEndianArchVariant() const {
+@@ -1775,6 +1782,7 @@ Triple Triple::getBigEndianArchVariant() const {
    case Triple::ve:
    case Triple::csky:
    case Triple::xtensa:
@@ -252,7 +252,7 @@ index 2c5aee3dfb2f..4ce99ec13e9d 100644
  
    // ARM is intentionally unsupported here, changing the architecture would
    // drop any arch suffixes.
-@@ -1880,6 +1888,7 @@ bool Triple::isLittleEndian() const {
+@@ -1886,6 +1894,7 @@ bool Triple::isLittleEndian() const {
    case Triple::x86_64:
    case Triple::xcore:
    case Triple::xtensa:
