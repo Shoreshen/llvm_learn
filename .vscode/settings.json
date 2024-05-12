@@ -90,7 +90,8 @@
         "random": "cpp",
         "system_error": "cpp",
         "stop_token": "cpp",
-        "thread": "cpp"
+        "thread": "cpp",
+        "mytest.h": "c"
     },
     "C_Cpp.default.compilerPath": "/usr/bin/gcc"
 }

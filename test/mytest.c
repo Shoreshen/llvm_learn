@@ -21,7 +21,9 @@
 
 #include "mytest.h"
 
-void run_on_npu_riscv()
+char* test_str = "add ra, 17 , 1\ndddbaaa\n";
+
+char* run_on_npu_riscv()
 {
     int a = 23;
     push_to_npu_buffer(a);
@@ -29,7 +31,8 @@ void run_on_npu_riscv()
         "add ra, 17 , 1\n"
         "dddbaaa\n"
     );
-    return;
+    run_on_npu(test_str);
+    return test_str;
 }
 
 
