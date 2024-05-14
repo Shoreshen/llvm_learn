@@ -20,16 +20,18 @@ const char* getStringFromValue(Value *value) {
     // 检查Value是否为GlobalVariable
     if (auto *GV = dyn_cast<GlobalVariable>(value)) {
         // 确保它有一个初始化器
-        value->print(errs());
         if (GV->hasInitializer()) {
             // 获取初始化器
             Constant *Init = GV->getInitializer();
+            Init->print(errs());
             // 检查初始化器是否是ConstantDataArray
             if (auto CDA = dyn_cast<ConstantDataArray>(Init)) {
                 if (CDA->isString()) {
                     // 提取并返回字符串数据
                     return CDA->getAsCString().data();
                 }
+            } if(auto *GV = dyn_cast<GlobalVariable>(Init)) {
+                return getStringFromValue(GV);
             }
         }
     } else if (auto *StrInst = dyn_cast<LoadInst>(value)) {

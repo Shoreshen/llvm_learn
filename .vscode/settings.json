@@ -91,7 +91,8 @@
         "system_error": "cpp",
         "stop_token": "cpp",
         "thread": "cpp",
-        "mytest.h": "c"
+        "mytest.h": "c",
+        "stdio.h": "c"
     },
     "C_Cpp.default.compilerPath": "/usr/bin/gcc"
 }

@@ -26,7 +26,7 @@ PHONY += commit sync sub_pull
 config_clang:
 	cd llvm-project && cmake -G Ninja -S llvm -B build -DCMAKE_INSTALL_PREFIX=../bin -DCMAKE_BUILD_TYPE=Debug -DLLVM_ENABLE_PROJECTS='clang;lld' -DLLVM_TARGETS_TO_BUILD='X86;Mips' -DLLVM_PARALLEL_COMPILE_JOBS=32 -DLLVM_PARALLEL_LINK_JOBS=4
 config_cpu0:
-	cd llvm-project && cmake -G Ninja -S llvm -B build -DCMAKE_INSTALL_PREFIX=../bin -DCMAKE_BUILD_TYPE=Debug -DLLVM_ENABLE_PROJECTS='clang' -DLLVM_TARGETS_TO_BUILD='Cpu0;X86;Mips;ARM;RISCV' -DLLVM_PARALLEL_COMPILE_JOBS=32 -DLLVM_PARALLEL_LINK_JOBS=4
+	cd llvm-project && cmake -G Ninja -S llvm -B build -DCMAKE_INSTALL_PREFIX=../bin -DCMAKE_BUILD_TYPE=Debug -DLLVM_ENABLE_PROJECTS='clang;lld' -DLLVM_TARGETS_TO_BUILD='Cpu0;X86;Mips;ARM;RISCV' -DLLVM_PARALLEL_COMPILE_JOBS=32 -DLLVM_PARALLEL_LINK_JOBS=4
 build:
 	cd llvm-project/build && ninja
 save_change:
@@ -45,7 +45,7 @@ view_dag:
 	./llvm-project/build/bin/llc -march=x86 -view-dag-combine1-dags -debug mytest.ll &>log
 
 mytest.ll: ./test/mytest.c ./test/mytest.h
-	./llvm-project/build/bin/clang --target=riscv32 -S -emit-llvm -O3 -o $@ $<
+	./llvm-project/build/bin/clang -I /usr/include --target=riscv32 -S -emit-llvm -O3 -o $@ $<
 
 mytest.s: mytest.ll
 	./llvm-project/build/bin/llc -march=riscv32 -o $@ $<
