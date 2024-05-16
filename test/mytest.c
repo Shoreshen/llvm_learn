@@ -18,7 +18,7 @@
 //     int d = c * y[1];
 //     y[2] = b + c + d;
 // }
-#include <stdio.h>
+// #include <stdio.h>
 // #include "mytest.h"
 
 static char* test_str = "add ra, 17 , 1\ndddbaaa\n";
@@ -38,7 +38,7 @@ char* run_on_npu_riscv()
 int main()
 {
     int a = 23;
-    printf("%s", run_on_npu_riscv());
+    // printf("%s", run_on_npu_riscv());
     return 0;
 }
 
