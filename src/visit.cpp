@@ -23,7 +23,7 @@ const char* getStringFromValue(Value *value) {
         if (GV->hasInitializer()) {
             // 获取初始化器
             Constant *Init = GV->getInitializer();
-            Init->print(errs());
+            // Init->print(errs());
             // 检查初始化器是否是ConstantDataArray
             if (auto CDA = dyn_cast<ConstantDataArray>(Init)) {
                 if (CDA->isString()) {

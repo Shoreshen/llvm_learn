@@ -108,7 +108,7 @@ index 0ac4e7a57759..4b2c046de197 100644
      break;
    }
 diff --git a/llvm/lib/Target/RISCV/MCTargetDesc/RISCVMCCodeEmitter.cpp b/llvm/lib/Target/RISCV/MCTargetDesc/RISCVMCCodeEmitter.cpp
-index 0863345b0c6d..a789fd50b021 100644
+index 0863345b0c6d..3b244ce326ea 100644
 --- a/llvm/lib/Target/RISCV/MCTargetDesc/RISCVMCCodeEmitter.cpp
 +++ b/llvm/lib/Target/RISCV/MCTargetDesc/RISCVMCCodeEmitter.cpp
 @@ -28,7 +28,9 @@
@@ -131,7 +131,7 @@ index 0863345b0c6d..a789fd50b021 100644
  // Expand PseudoCALL(Reg), PseudoTAIL and PseudoJump to AUIPC and JALR with
  // relocation types. We expand those pseudo-instructions while encoding them,
  // meaning AUIPC and JALR won't go through RISC-V MC to MC compressed
-@@ -146,6 +150,43 @@ void RISCVMCCodeEmitter::expandFunctionCall(const MCInst &MI,
+@@ -146,6 +150,44 @@ void RISCVMCCodeEmitter::expandFunctionCall(const MCInst &MI,
  
    const MCExpr *CallExpr = Func.getExpr();
  
@@ -167,6 +167,7 @@ index 0863345b0c6d..a789fd50b021 100644
 +          while (iss >> Binary) {
 +            support::endian::write(CB, Binary, llvm::endianness::little);
 +          }
++          printf("handle func: %s\n", Name.str().c_str());
 +          return;
 +        }
 +      }

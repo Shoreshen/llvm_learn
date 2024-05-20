@@ -1,5 +1,3 @@
-// #include <stdio.h>
-
 // int main()
 // {
 //     int a = 23;
@@ -19,26 +17,15 @@
 //     y[2] = b + c + d;
 // }
 // #include <stdio.h>
-// #include "mytest.h"
-
-static char* test_str = "add ra, 17 , 1\ndddbaaa\n";
+#include "mytest.h"
 
 char* run_on_npu_riscv()
 {
     int a = 23;
-    // push_to_npu_buffer(a);
+    push_to_npu_buffer(a);
     // run_on_npu(
     //     "add ra, 17 , 1\n"
     //     "dddbaaa\n"
     // );
-    // run_on_npu(test_str);
-    return test_str;
-}
-
-int main()
-{
-    int a = 23;
-    // printf("%s", run_on_npu_riscv());
-    return 0;
-}
-
+    return "test_runing";
+} 

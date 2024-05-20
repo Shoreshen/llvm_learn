@@ -45,28 +45,28 @@ view_dag:
 	./llvm-project/build/bin/llc -march=x86 -view-dag-combine1-dags -debug mytest.ll &>log
 
 mytest.ll: ./test/mytest.c ./test/mytest.h
-	./llvm-project/build/bin/clang -I /usr/include --target=riscv32 -S -emit-llvm -O3 -o $@ $<
+	./llvm-project/build/bin/clang --target=riscv64-unknown-linux-gnu -S -emit-llvm -fPIC -O3 -o $@ $<
 
-mytest.s: mytest.ll
-	./llvm-project/build/bin/llc -march=riscv32 -o $@ $<
+mytest.o:mytest.ll
+	./llvm-project/build/bin/clang --target=riscv64-unknown-linux-gnu -fPIC -c -o $@ $<
 
-mytest.o:mytest.s
-	./llvm-project/build/bin/llvm-mc -filetype=obj -triple=riscv32 --arch=riscv32 $< -o $@
+mytest.so:mytest.o
+	riscv64-unknown-linux-gnu-gcc -shared -o mytest.so mytest.o
 
-dumpmytest:mytest.o
-	./llvm-project/build/bin/llvm-objdump -d mytest.o
+dumpmytest:mytest.so
+	riscv64-unknown-linux-gnu-objdump -d mytest.so
 
 mytest_comp.bc: ./test/mytest.c
-	./llvm-project/build/bin/clang --target=riscv32 -emit-llvm -O3 -c $< -o $@
+	./llvm-project/build/bin/clang --target=riscv64 -emit-llvm -O3 -c $< -o $@
 
 mytest_comp.ll: mytest_comp.bc comp.out
 	./comp.out -ll $@ $<
 
 mytest_comp.s: mytest_comp.ll
-	./llvm-project/build/bin/llc -march=riscv32 -o $@ $<
+	./llvm-project/build/bin/llc -march=riscv64 -o $@ $<
 
 mytest_comp.o:mytest_comp.s
-	./llvm-project/build/bin/llvm-mc -filetype=obj -triple=riscv32 --arch=riscv32 $< -o $@
+	./llvm-project/build/bin/llvm-mc -filetype=obj -triple=riscv64 --arch=riscv64 $< -o $@
 
 PHONY += view_dag dumpmytest
 # Compiler ===============================================================================
@@ -79,7 +79,7 @@ comp.out:./src/main.o $(OBJ_C)
 
 # clean ==================================================================================
 clean:
-	-rm *.bc *.ll *.s *.out log *.o src/*.o param_map.txt
+	-rm *.bc *.ll *.s *.out log *.o src/*.o param_map.txt *.so
 
 PHONY += clean
 # ========================================================================================
