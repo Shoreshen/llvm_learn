@@ -18,14 +18,30 @@
 // }
 // #include <stdio.h>
 #include "mytest.h"
+char* dddddd();
+char* aaa = "test_runing";
 
-char* run_on_npu_riscv()
+void __attribute__((noinline, optnone)) run_on_npu(volatile char* str)
+{
+    return;
+}
+void __attribute__((noinline, optnone)) push_to_npu_buffer(volatile int a)
+{
+    return;
+}
+int _start()
 {
     int a = 23;
     push_to_npu_buffer(a);
-    // run_on_npu(
-    //     "add ra, 17 , 1\n"
-    //     "dddbaaa\n"
-    // );
-    return "test_runing";
+    run_on_npu(
+        "add ra, 17 , 1\n"
+        "dddbaaa\n"
+    );
+    dddddd();
+    return 0;
+}
+char* dddddd()
+{
+    aaa[0] = 0;
+    return aaa + 1;
 } 

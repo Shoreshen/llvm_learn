@@ -584,3 +584,25 @@ compiler -source input.c -o output.exe -npu-lib npu_functions.dll
 ### 高级NPU代码优化
 
 针对神经处理单元（NPU）的代码优化是编译器设计中的一项高端技术，旨在充分利用NPU的独特架构和计算能力，以实现超高效的执行性能。
+
+
+# riscv assembly
+
+```asm
+00000000000111b4 <dddddd>:
+   111b4: ff010113      addi    sp, sp, -0x10
+   111b8: 00113423      sd      ra, 0x8(sp)
+   111bc: 00813023      sd      s0, 0x0(sp)
+   111c0: 01010413      addi    s0, sp, 0x10
+   111c4: 00012537      lui     a0, 0x12
+   111c8: 28053603      ld      a2, 0x280(a0)
+   111cc: 00000593      li      a1, 0x0
+   111d0: 00b60023      sb      a1, 0x0(a2)
+   111d4: 28053503      ld      a0, 0x280(a0)
+   111d8: 00150513      addi    a0, a0, 0x1
+   111dc: 00813083      ld      ra, 0x8(sp)
+   111e0: 00013403      ld      s0, 0x0(sp)
+   111e4: 01010113      addi    sp, sp, 0x10
+   111e8: 00008067      ret
+```
+1. ``
