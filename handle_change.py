@@ -11,7 +11,7 @@ def run_command(command):
     output, error = process.communicate()
 
     if error:
-        print(f"Error: {error}")
+        print(f"Error: {error}") 
         exit(1)
 
     return output.decode('utf-8').strip()
