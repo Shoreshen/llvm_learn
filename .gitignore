@@ -2,3 +2,5 @@ build
 *.o
 *.so
 *.ll
+*.out
+param_map.txt
