@@ -92,7 +92,13 @@
         "stop_token": "cpp",
         "thread": "cpp",
         "mytest.h": "c",
-        "stdio.h": "c"
+        "stdio.h": "c",
+        "complex": "cpp",
+        "csignal": "cpp",
+        "execution": "cpp",
+        "stdfloat": "cpp",
+        "text_encoding": "cpp"
     },
-    "C_Cpp.default.compilerPath": "/usr/bin/gcc"
+    "C_Cpp.default.compilerPath": "/usr/bin/gcc",
+    "git.enabled": true
 }

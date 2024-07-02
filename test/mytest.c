@@ -38,6 +38,10 @@ int _start()
         "dddbaaa\n"
     );
     dddddd();
+    run_on_npu(
+        "add ra, 17 , 1\n"
+        "dddbaaa\n"
+    );
     return 0;
 }
 char* dddddd()

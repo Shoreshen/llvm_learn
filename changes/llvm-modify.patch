@@ -1,5 +1,5 @@
 diff --git a/llvm/CMakeLists.txt b/llvm/CMakeLists.txt
-index c06e661573ed..4a2f0a838517 100644
+index 3208147101c0..5fbac173aa1e 100644
 --- a/llvm/CMakeLists.txt
 +++ b/llvm/CMakeLists.txt
 @@ -487,6 +487,7 @@ set(LLVM_ALL_TARGETS
@@ -11,10 +11,10 @@ index c06e661573ed..4a2f0a838517 100644
  
  set(LLVM_ALL_EXPERIMENTAL_TARGETS
 diff --git a/llvm/cmake/config-ix.cmake b/llvm/cmake/config-ix.cmake
-index bf1b110245bb..7891ef0aea92 100644
+index 0aae13e30f2a..d304dd0cf8bd 100644
 --- a/llvm/cmake/config-ix.cmake
 +++ b/llvm/cmake/config-ix.cmake
-@@ -505,6 +505,8 @@ elseif (LLVM_NATIVE_ARCH STREQUAL "m68k")
+@@ -507,6 +507,8 @@ elseif (LLVM_NATIVE_ARCH STREQUAL "m68k")
    set(LLVM_NATIVE_ARCH M68k)
  elseif (LLVM_NATIVE_ARCH MATCHES "loongarch")
    set(LLVM_NATIVE_ARCH LoongArch)
@@ -24,7 +24,7 @@ index bf1b110245bb..7891ef0aea92 100644
    message(FATAL_ERROR "Unknown architecture ${LLVM_NATIVE_ARCH}")
  endif ()
 diff --git a/llvm/include/llvm/BinaryFormat/ELF.h b/llvm/include/llvm/BinaryFormat/ELF.h
-index f296acc2ca4b..a4b43f7117c2 100644
+index dfba18014991..0f6418af7cd6 100644
 --- a/llvm/include/llvm/BinaryFormat/ELF.h
 +++ b/llvm/include/llvm/BinaryFormat/ELF.h
 @@ -320,6 +320,7 @@ enum {
@@ -35,7 +35,7 @@ index f296acc2ca4b..a4b43f7117c2 100644
  };
  
  // Object file classes.
-@@ -975,6 +976,19 @@ enum {
+@@ -979,6 +980,19 @@ enum {
  #include "ELFRelocs/CSKY.def"
  };
  
