@@ -435,6 +435,64 @@ All instruction definition has sub-class or class of [`Instruction`](llvm-projec
    2. Original DAG mainly using operator defined in [TargetSelectionDAG.td](llvm-project/llvm/include/llvm/Target/TargetSelectionDAG.td) with sub-class or class of `class SDNode`
 6. `TSFlags`: Value of `TSFlags` field in `MCInstrDesc` c++ class
 
+### SelectionDAG
+
+LLVM ir will be converted to SelectionDAG, which is a graph of nodes representing the operations in the program.
+
+The following is an example of llvm ir:
+
+```llvm
+
+;from:
+;void test(int a, int b, int *y)
+;{
+;    *y = a + b;
+;}
+define dso_local void @test(i32 noundef %a, i32 noundef %b, ptr noundef %y) #0 {
+entry:
+  %a.addr = alloca i32, align 4
+  %b.addr = alloca i32, align 4
+  %y.addr = alloca ptr, align 8
+  store i32 %a, ptr %a.addr, align 4
+  store i32 %b, ptr %b.addr, align 4
+  store ptr %y, ptr %y.addr, align 8
+  %0 = load i32, ptr %a.addr, align 4
+  %1 = load i32, ptr %b.addr, align 4
+  %add = add nsw i32 %0, %1
+  %2 = load ptr, ptr %y.addr, align 8
+  store i32 %add, ptr %2, align 4
+  ret void
+}
+```
+
+The SelectionDAG of the above llvm ir is as follow:
+
+```
+SelectionDAG has 23 nodes:
+  t0: ch,glue = EntryToken
+  t8: i64 = Constant<0>
+        t2: i32,ch = CopyFromReg t0, Register:i32 %0
+      t10: ch = store<(store (s32) into %ir.a.addr)> t0, t2, FrameIndex:i64<0>, undef:i64
+      t4: i32,ch = CopyFromReg t0, Register:i32 %1
+    t12: ch = store<(store (s32) into %ir.b.addr)> t10, t4, FrameIndex:i64<1>, undef:i64
+    t6: i64,ch = CopyFromReg t0, Register:i64 %2
+  t14: ch = store<(store (s64) into %ir.y.addr)> t12, t6, FrameIndex:i64<2>, undef:i64
+  t15: i32,ch = load<(dereferenceable load (s32) from %ir.a.addr)> t14, FrameIndex:i64<0>, undef:i64
+  t16: i32,ch = load<(dereferenceable load (s32) from %ir.b.addr)> t14, FrameIndex:i64<1>, undef:i64
+  t18: i64,ch = load<(dereferenceable load (s64) from %ir.y.addr)> t14, FrameIndex:i64<2>, undef:i64
+      t19: ch = TokenFactor t15:1, t16:1, t18:1
+      t17: i32 = add nsw t15, t16
+    t20: ch = store<(store (s32) into %ir.2)> t19, t17, t18, undef:i64
+  t22: ch = X86ISD::RET_GLUE t20, TargetConstant:i32<0>
+
+```
+
+Some points:
+
+1. Each `tn` is a node that represents an operation needed by the program
+2. `t12` depends on `t4` may be because if alias happens, `%ir.a.addr` and `%ir.b.addr` would pointing at the same address, then the order of storing matters
+3. `t19` is used to synchronize the load of `%ir.a.addr`, `%ir.b.addr` and `%ir.y.addr`
+
 ### Example
 
 Using codes in [Cpu0InstrFormats.td](backend_tutorial/chapters/Chapter2/Cpu0InstrFormats.td) and [Cpu0InstrInfo.td](backend_tutorial/chapters/Chapter2/Cpu0InstrInfo.td) as example.
