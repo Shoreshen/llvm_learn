@@ -97,7 +97,8 @@
         "csignal": "cpp",
         "execution": "cpp",
         "stdfloat": "cpp",
-        "text_encoding": "cpp"
+        "text_encoding": "cpp",
+        "hip_runtime.h": "c"
     },
     "C_Cpp.default.compilerPath": "/usr/bin/gcc",
     "git.enabled": true

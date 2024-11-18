@@ -70,7 +70,13 @@ mytest_comp.out:mytest_comp.o
 dump_mytest_comp:mytest_comp.out
 	llvm-project/build/bin/llvm-objdump -d -x $<
 
+test.ll: ./test/test.c # has to add -O3, otherwise machine scheduler will not invoke
+	./llvm-project/build/bin/clang -S -emit-llvm -o $@ $< -O3
+
 PHONY += view_dag dump_mytest dump_mytest_comp
+# AMDtest ================================================================================
+testAMD.ll: ./test/testAMD.c # has to add -O3, otherwise machine scheduler will not invoke
+	./llvm-project/build/bin/clang -x hip --cuda-gpu-arch=gfx906 --cuda-device-only -S -I/opt/rocm/include -emit-llvm -o $@ $< -O3
 # Compiler ===============================================================================
 $(OBJ_C):%.o:%.cpp %.h ./src/util.h
 	g++ $(CFLAGS) -c $< -o $@
