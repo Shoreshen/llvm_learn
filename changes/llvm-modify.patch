@@ -108,7 +108,7 @@ index e47a40b8715d..a16222843394 100644
      break;
    }
 diff --git a/llvm/lib/Target/RISCV/MCTargetDesc/RISCVMCCodeEmitter.cpp b/llvm/lib/Target/RISCV/MCTargetDesc/RISCVMCCodeEmitter.cpp
-index 0863345b0c6d..3b244ce326ea 100644
+index c9636b2c7025..4b9d80bcdcb6 100644
 --- a/llvm/lib/Target/RISCV/MCTargetDesc/RISCVMCCodeEmitter.cpp
 +++ b/llvm/lib/Target/RISCV/MCTargetDesc/RISCVMCCodeEmitter.cpp
 @@ -28,7 +28,9 @@

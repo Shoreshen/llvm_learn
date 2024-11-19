@@ -553,7 +553,8 @@ Then calling the following functions:
 1. [`SelectAllBasicBlocks`](llvm-project/llvm/lib/CodeGen/SelectionDAG/SelectionDAGISel.cpp#L1602) to handle all the blocks within function
 2. [`SelectBasicBlock`](llvm-project/llvm/lib/CodeGen/SelectionDAG/SelectionDAGISel.cpp#L827) to handle each block
 3. [`CodeGenAndEmitDAG`](llvm-project/llvm/lib/CodeGen/SelectionDAG/SelectionDAGISel.cpp#L890) to generate first selection DAG, optimizing it and other related work
-4. 
+4. [`DoInstructionSelection`](llvm-project/llvm/lib/CodeGen/SelectionDAG/SelectionDAGISel.cpp#L1230) to trigger selection for each instructions
+5. 
 
 #### SelectionDAG
 
