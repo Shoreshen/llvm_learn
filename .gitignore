@@ -4,4 +4,5 @@ build
 *.ll
 *.out
 *.s
+*.il
 param_map.txt

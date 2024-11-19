@@ -100,7 +100,7 @@
             ]
         },
         {
-            "name": "backend",
+            "name": "backend-X86",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/llvm-project/build/bin/llc",
@@ -139,7 +139,8 @@
                 // "-march=arm",
                 "-enable-misched",
                 "-fast-isel=0",
-                "testAMD.ll"
+                "testAMD.ll",
+                "-o","testAMD.il"
             ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",

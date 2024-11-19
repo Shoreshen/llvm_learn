@@ -16,6 +16,46 @@ LLVM的基本流程如下
 
 ## Tablegen
 
+## Basic procedure
+
+### Example-AMDGPU
+
+Using [testAMD.c](./test/testAMD.c) as source, compiling device only llvm ir `testAMD.ll` using the following command:
+
+```shell
+./llvm-project/build/bin/clang -x hip --cuda-gpu-arch=gfx1100 --cuda-device-only -S -I/opt/rocm/include -emit-llvm -o testAMD.ll ./test/testAMD.c -O3
+```
+
+Focus on the process of assembly generation from `testAMD.ll` with the following command:
+
+```shell
+./llvm-project/build/bin/llc -enable-misched -fast-isel=0 testAMD.ll -o testAMD.il
+```
+
+### Start up
+
+Start with [`mian`](llvm-project/llvm/tools/llc/llc.cpp#L319) function, calling [`compileModule`](llvm-project/llvm/tools/llc/llc.cpp#L446) after few check works.
+
+### Main backend process
+
+Within the [`compileModule`](llvm-project/llvm/tools/llc/llc.cpp#L446) function, the main backend process is as follow:
+
+1. Set up `std::unique_ptr<TargetMachine> Target` 
+   1. `Target` is the instantiation of target specific `TargetMachine` class, in this case its the [`GCNTargetMachine`](llvm-project/llvm/lib/Target/AMDGPU/AMDGPUTargetMachine.cpp#L867) instance
+   2. In this case, it is set by parsing IR file with lambda function call names `SetDataLayout`
+2. Create pass manager, in this case we use legacy pass manager
+3. Add code generation passes by calling [`addPassesToEmitFile`](llvm-project/llvm/lib/CodeGen/LLVMTargetMachine.cpp#L209) function
+4. Run different passes to finish [Instruction selection](#instruction-schedule), [Instruction scheduling](#instruction-schedule) and [Register allocation](#register-allocation)
+
+### [`TargetPassConfig`](llvm-project/llvm/include/llvm/CodeGen/TargetPassConfig.h#L85)
+
+Target need to construct subclass of `TargetPassConfig` to define the passes that will be added.
+
+A series of functions can be overridden to add target specific passes, some of the important functions are:
+
+1. If using selection DAG instruction selector, then `addInstSelector` function should be overridden
+2. If using global instruction selector, then `addIRTranslator`, `addLegalizeMachineIR`, `addRegBankSelect` and `addGlobalInstructionSelect` function should be overridden
+
 ## Instruction Schedule
 
 ### Example
@@ -276,9 +316,11 @@ Used to define macro properties of the chip, the instance of [`class SchedMachin
 
 Entry point of debug is [here](llvm-project/llvm/lib/CodeGen/MachineScheduler.cpp#L433) 
 
-## Instruction Define
+## Instruction Selection
 
-### DAG
+### Instruction Define
+
+#### DAG
 
 A DAG of tablegen has the form of `(operator operand_1, operand_2, ...)` for each sub DAG, it can have a name by `(operator operand_1:$name_1, operand_2:$name_2, ...)`
 
@@ -287,11 +329,11 @@ A DAG of tablegen has the form of `(operator operand_1, operand_2, ...)` for eac
 3. `name_i` refers to the name [DAG operand](#dag-operand), can be used to [value variables](#instruction)
 4. User can also define "macro" like mappings to simplify the pattern match recognitions
 
-#### DAG operand
+##### DAG operand
 
 Any instance with the sub-class or class of [`class DAGOperand`](llvm-project/llvm/include/llvm/Target/Target.td#L245), wildly used sub-classes are [RegisterClass](#registerclass) and [Operand](#operand).
 
-##### RegisterClass
+###### RegisterClass
 
 Use to define a class of register that is available for register allocation.
 
@@ -305,7 +347,7 @@ Defined in [Target.td](llvm-project/llvm/include/llvm/Target/Target.td#255) and 
 2. `alignment`: alignment required of the registers when they are stored or loaded to memory
 3. `regList`: form of `(add dag_1, dag_2, ...)` in this case the `dag_i` must be sub-class or class of [`class Register`](llvm-project/llvm/include/llvm/Target/Target.td#L163). This list out all the registers in this register class
 
-##### Operand
+###### Operand
 
 Used to define address, values that can be determined while compiling other than register
 
@@ -320,14 +362,14 @@ The base class is [`class Operand`](llvm-project/llvm/include/llvm/Target/Target
    2. `(MEMri $rs1, $simm13):$addr` can be used as operand of a DAG, in this case `rs1`, `simm13` and `addr` can all be used to value variables illustrated [below](#instruction)
 4. `EncoderMethod`: self defined function for encoding
 
-#### DAG operator
+##### DAG operator
 
 A DAG operator can be:
 
 1. Any sub-class or class of [`class SDPatternOperator`](llvm-project/llvm/include/llvm/CodeGen/SDNodeProperties.td#L12), Widely used sub-classes are [SDNode](#sdnode)
 2. Some [special operators](#special-operators)
 
-##### SDNode
+###### SDNode
 
 The base class is [`class SDNode`](llvm-project/llvm/include/llvm/Target/TargetSelectionDAG.td#L332) and key parameters are:
 
@@ -335,7 +377,7 @@ The base class is [`class SDNode`](llvm-project/llvm/include/llvm/Target/TargetS
 2. `typeprof`: instance of [`class SDTypeProfile`](llvm-project/llvm/include/llvm/Target/TargetSelectionDAG.td#L97), implement number of output/input operands and constraints
 3. `Properties`: `list` of `class SDNodeProperty` (available properties are listed in [SDNodeProperties.td](llvm-project/llvm/include/llvm/CodeGen/SDNodeProperties.td))
 
-##### Special operators 
+###### Special operators 
 
 Including `ins`, `outs`, `set`, `ops` and etc which has no base class. These operators are used for special cases including:
 
@@ -344,11 +386,11 @@ Including `ins`, `outs`, `set`, `ops` and etc which has no base class. These ope
 3. `ops`: used in `MIOperandInfo` of [`class Operand`](#operand) to list out the operands of the operand
 4. `set`: used in `pattern` element of instruction to define the pattern in instruction selection
 
-#### Pattern mapping
+##### Pattern mapping
 
 Mapping a self defined operator and its operands to a set of DAGs.
 
-##### ComplexPattern
+###### ComplexPattern
 
 Any sub-class or class of [`class ComplexPattern`](llvm-project/llvm/include/llvm/Target/TargetSelectionDAG.td#L1999), key parameters are:
 
@@ -359,7 +401,7 @@ Any sub-class or class of [`class ComplexPattern`](llvm-project/llvm/include/llv
 
 This is used to define and self-written instruction selection function to match the DAG.
 
-##### PatFrags
+###### PatFrags
 
 Defined [here](llvm-project/llvm/include/llvm/Target/TargetSelectionDAG.td#L861) key parameters are:
 
@@ -415,11 +457,11 @@ From the above example we can see that `any_fadd` is used in the `pattern` param
 
 The `OpNode` parameter is the `any_fadd` instance, and it will match both `(strict_fadd _.FRC:$src1, _.FRC:$src1)` pattern and `(fadd _.FRC:$src1, _.FRC:$src1)`
 
-##### PatLeaf
+###### PatLeaf
 
 defined [here](llvm-project/llvm/include/llvm/Target/TargetSelectionDAG.td#L965), just a convenient definition for [PatFrags](#patfrags) with 0 operand.
 
-### Instruction
+#### Instruction
 
 All instruction definition has sub-class or class of [`Instruction`](llvm-project/llvm/include/llvm/Target/Target.td#L586) and some of the key parameters are:
 
@@ -435,65 +477,7 @@ All instruction definition has sub-class or class of [`Instruction`](llvm-projec
    2. Original DAG mainly using operator defined in [TargetSelectionDAG.td](llvm-project/llvm/include/llvm/Target/TargetSelectionDAG.td) with sub-class or class of `class SDNode`
 6. `TSFlags`: Value of `TSFlags` field in `MCInstrDesc` c++ class
 
-### SelectionDAG
-
-LLVM ir will be converted to SelectionDAG, which is a graph of nodes representing the operations in the program.
-
-The following is an example of llvm ir:
-
-```llvm
-
-;from:
-;void test(int a, int b, int *y)
-;{
-;    *y = a + b;
-;}
-define dso_local void @test(i32 noundef %a, i32 noundef %b, ptr noundef %y) #0 {
-entry:
-  %a.addr = alloca i32, align 4
-  %b.addr = alloca i32, align 4
-  %y.addr = alloca ptr, align 8
-  store i32 %a, ptr %a.addr, align 4
-  store i32 %b, ptr %b.addr, align 4
-  store ptr %y, ptr %y.addr, align 8
-  %0 = load i32, ptr %a.addr, align 4
-  %1 = load i32, ptr %b.addr, align 4
-  %add = add nsw i32 %0, %1
-  %2 = load ptr, ptr %y.addr, align 8
-  store i32 %add, ptr %2, align 4
-  ret void
-}
-```
-
-The SelectionDAG of the above llvm ir is as follow:
-
-```
-SelectionDAG has 23 nodes:
-  t0: ch,glue = EntryToken
-  t8: i64 = Constant<0>
-        t2: i32,ch = CopyFromReg t0, Register:i32 %0
-      t10: ch = store<(store (s32) into %ir.a.addr)> t0, t2, FrameIndex:i64<0>, undef:i64
-      t4: i32,ch = CopyFromReg t0, Register:i32 %1
-    t12: ch = store<(store (s32) into %ir.b.addr)> t10, t4, FrameIndex:i64<1>, undef:i64
-    t6: i64,ch = CopyFromReg t0, Register:i64 %2
-  t14: ch = store<(store (s64) into %ir.y.addr)> t12, t6, FrameIndex:i64<2>, undef:i64
-  t15: i32,ch = load<(dereferenceable load (s32) from %ir.a.addr)> t14, FrameIndex:i64<0>, undef:i64
-  t16: i32,ch = load<(dereferenceable load (s32) from %ir.b.addr)> t14, FrameIndex:i64<1>, undef:i64
-  t18: i64,ch = load<(dereferenceable load (s64) from %ir.y.addr)> t14, FrameIndex:i64<2>, undef:i64
-      t19: ch = TokenFactor t15:1, t16:1, t18:1
-      t17: i32 = add nsw t15, t16
-    t20: ch = store<(store (s32) into %ir.2)> t19, t17, t18, undef:i64
-  t22: ch = X86ISD::RET_GLUE t20, TargetConstant:i32<0>
-
-```
-
-Some points:
-
-1. Each `tn` is a node that represents an operation needed by the program
-2. `t12` depends on `t4` may be because if alias happens, `%ir.a.addr` and `%ir.b.addr` would pointing at the same address, then the order of storing matters
-3. `t19` is used to synchronize the load of `%ir.a.addr`, `%ir.b.addr` and `%ir.y.addr`
-
-### Example
+#### Example
 
 Using codes in [Cpu0InstrFormats.td](backend_tutorial/chapters/Chapter2/Cpu0InstrFormats.td) and [Cpu0InstrInfo.td](backend_tutorial/chapters/Chapter2/Cpu0InstrInfo.td) as example.
 
@@ -557,6 +541,80 @@ def store_a         : AlignedStore<store>;
 ```
 
 Here `load_a` and `store_a` is defined as [PatFrags](#patfrags), which simply added alignment check on the original `load` and `store`.
+
+### Process
+
+We use the [AMDGPU](#example-amdgpu) example, which runs the selection DAG method.
+
+The entry point is [here](llvm-project/llvm/lib/CodeGen/SelectionDAG/SelectionDAGISel.cpp#L590), the target of instruction selection is a function. 
+
+Then calling the following functions:
+
+1. [`SelectAllBasicBlocks`](llvm-project/llvm/lib/CodeGen/SelectionDAG/SelectionDAGISel.cpp#L1602) to handle all the blocks within function
+2. [`SelectBasicBlock`](llvm-project/llvm/lib/CodeGen/SelectionDAG/SelectionDAGISel.cpp#L827) to handle each block
+3. [`CodeGenAndEmitDAG`](llvm-project/llvm/lib/CodeGen/SelectionDAG/SelectionDAGISel.cpp#L890) to generate first selection DAG, optimizing it and other related work
+4. 
+
+#### SelectionDAG
+
+LLVM ir will be converted to SelectionDAG, which is a graph of nodes representing the operations in the program.
+
+The following is an example of llvm ir:
+
+```llvm
+
+;Source:
+;void test(int a, int b, int *y)
+;{
+;    *y = a + b;
+;}
+define dso_local void @test(i32 noundef %a, i32 noundef %b, ptr noundef %y) #0 {
+entry:
+  %a.addr = alloca i32, align 4
+  %b.addr = alloca i32, align 4
+  %y.addr = alloca ptr, align 8
+  store i32 %a, ptr %a.addr, align 4
+  store i32 %b, ptr %b.addr, align 4
+  store ptr %y, ptr %y.addr, align 8
+  %0 = load i32, ptr %a.addr, align 4
+  %1 = load i32, ptr %b.addr, align 4
+  %add = add nsw i32 %0, %1
+  %2 = load ptr, ptr %y.addr, align 8
+  store i32 %add, ptr %2, align 4
+  ret void
+}
+```
+
+The SelectionDAG of the above llvm ir is as follow:
+
+```
+SelectionDAG has 23 nodes:
+  t0: ch,glue = EntryToken
+  t8: i64 = Constant<0>
+        t2: i32,ch = CopyFromReg t0, Register:i32 %0
+      t10: ch = store<(store (s32) into %ir.a.addr)> t0, t2, FrameIndex:i64<0>, undef:i64
+      t4: i32,ch = CopyFromReg t0, Register:i32 %1
+    t12: ch = store<(store (s32) into %ir.b.addr)> t10, t4, FrameIndex:i64<1>, undef:i64
+    t6: i64,ch = CopyFromReg t0, Register:i64 %2
+  t14: ch = store<(store (s64) into %ir.y.addr)> t12, t6, FrameIndex:i64<2>, undef:i64
+  t15: i32,ch = load<(dereferenceable load (s32) from %ir.a.addr)> t14, FrameIndex:i64<0>, undef:i64
+  t16: i32,ch = load<(dereferenceable load (s32) from %ir.b.addr)> t14, FrameIndex:i64<1>, undef:i64
+  t18: i64,ch = load<(dereferenceable load (s64) from %ir.y.addr)> t14, FrameIndex:i64<2>, undef:i64
+      t19: ch = TokenFactor t15:1, t16:1, t18:1
+      t17: i32 = add nsw t15, t16
+    t20: ch = store<(store (s32) into %ir.2)> t19, t17, t18, undef:i64
+  t22: ch = X86ISD::RET_GLUE t20, TargetConstant:i32<0>
+
+```
+
+Some points:
+
+1. Each `tn` is a node that represents an operation needed by the program
+2. `t12` depends on `t4` may be because if alias happens, `%ir.a.addr` and `%ir.b.addr` would pointing at the same address, then the order of storing matters
+3. `t19` is used to synchronize the load of `%ir.a.addr`, `%ir.b.addr` and `%ir.y.addr`
+
+
+## Register allocation
 
 ## Calling convention
 
