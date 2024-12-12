@@ -29,6 +29,10 @@ config_llvm:
 	cd llvm-project && cmake -G Ninja -S llvm -B build -DCMAKE_INSTALL_PREFIX=../bin -DCMAKE_BUILD_TYPE=Debug -DLLVM_ENABLE_PROJECTS='llvm;lld;mlir' -DLLVM_TARGETS_TO_BUILD='X86' -DLLVM_PARALLEL_COMPILE_JOBS=32 -DLLVM_PARALLEL_LINK_JOBS=4
 config_cpu0:
 	cd llvm-project && cmake -G Ninja -S llvm -B build -DCMAKE_INSTALL_PREFIX=../bin -DCMAKE_BUILD_TYPE=Debug -DLLVM_ENABLE_PROJECTS='clang;lld;mlir' -DLLVM_TARGETS_TO_BUILD='Cpu0;X86;Mips;ARM;;NVPTX;AMDGPU;RISCV' -DLLVM_PARALLEL_COMPILE_JOBS=32 -DLLVM_PARALLEL_LINK_JOBS=4
+config_release:
+	cd llvm-project && cmake -G Ninja -S llvm -B build_release -DCMAKE_INSTALL_PREFIX=../bin -DCMAKE_BUILD_TYPE=Release -DLLVM_ENABLE_PROJECTS='clang;lld' -DLLVM_TARGETS_TO_BUILD='X86;AMDGPU' -DLLVM_PARALLEL_COMPILE_JOBS=32 -DLLVM_PARALLEL_LINK_JOBS=32 -DLLVM_BUILD_TESTS=ON
+build_release:
+	cd llvm-project/build_release && ninja
 build:
 	cd llvm-project/build && ninja
 save_change:
@@ -41,6 +45,16 @@ restore_modify:
 	python handle_change.py restore_modify
 
 PHONY += build config_clang config_cpu0 save_change restore_change
+# lit ====================================================================================
+# must change in line 456 of `llvm-project/llvm/test/lit.cfg.py`
+# `readobj_out = readobj_cmd.stdout.read().decode("acsii")` to `readobj_out = readobj_cmd.stdout.read().decode("utf-8")`
+
+lit_AMD:
+	llvm-project/build_release/bin/llvm-lit llvm-project/llvm/test/CodeGen/AMDGPU
+lit_v_sat_pk:
+	llvm-project/build_release/bin/llvm-lit llvm-project/llvm/test/CodeGen/AMDGPU/v_sat_pk_u8_i16.ll
+
+PHONY += lit_AMD lit_v_sat_pk
 # test ===================================================================================
 view_dag:
 	clang -S -emit-llvm ./test/mytest.c -o mytest.ll -O3
