@@ -78,7 +78,7 @@ PHONY += view_dag dump_mytest dump_mytest_comp
 testAMD.ll: ./test/testAMD.c # has to add -O3, otherwise machine scheduler will not invoke
 	./llvm-project/build/bin/clang -x hip --cuda-gpu-arch=gfx1100 --cuda-device-only -S -I/opt/rocm/include -emit-llvm -o $@ $< -O3
 testAMD.il: testAMD.ll
-	./llvm-project/build/bin/llc -enable-misched -fast-isel=0 $< -o $@
+	./llvm-project/build/bin/llc -march=amdgcn -mcpu=gfx1100 -enable-misched -fast-isel=0 $< -o $@ -O3
 # Compiler ===============================================================================
 $(OBJ_C):%.o:%.cpp %.h ./src/util.h
 	g++ $(CFLAGS) -c $< -o $@
