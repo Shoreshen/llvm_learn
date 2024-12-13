@@ -16,6 +16,120 @@ LLVM的基本流程如下
 
 ## Tablegen
 
+### multiclass
+
+Used to define multiple record once, see the following example:
+
+```tablegen
+def ops;
+def GPR;
+def Imm;
+class inst <int opc, string asmstr, dag operandlist>;
+
+multiclass ri_inst <int opc, string asmstr> {
+  def _rr : inst<opc, !strconcat(asmstr, " $dst, $src1, $src2"),
+                   (ops GPR:$dst, GPR:$src1, GPR:$src2)>;
+  def _ri : inst<opc, !strconcat(asmstr, " $dst, $src1, $src2"),
+                   (ops GPR:$dst, GPR:$src1, Imm:$src2)>;
+}
+
+// Define records for each instruction in the RR and RI formats.
+defm ADD : ri_inst<0b111, "add">;
+```
+
+This will define 2 records, which is equivalent to the following:
+
+```tablegen
+def ops;
+def GPR;
+def Imm;
+class inst <int opc, string asmstr, dag operandlist>;
+
+def ADD_rr : inst<0b111, !strconcat("add", " $dst, $src1, $src2"),
+                (ops GPR:$dst, GPR:$src1, GPR:$src2)>;
+def ADD_ri : inst<0b111, !strconcat("add", " $dst, $src1, $src2"),
+                (ops GPR:$dst, GPR:$src1, Imm:$src2)>;
+```
+
+#### Inherent `NAME` arg
+
+`NAME` is a inherent argument for `multiclass`, If a record defined inside `multiclass` and did not use the argument `NAME`, then the following is equivalent:
+
+```tablegen
+defm Foo        : SomeMultiClass<...>;
+defm NAME # Foo : SomeMultiClass<...>;
+```
+
+Here is an example
+
+```tablegen
+def ops;
+def GPR;
+def Imm;
+class inst <int opc, string asmstr, dag operandlist>;
+
+multiclass ri_inst <int opc, string asmstr> {
+  def SUB_rr : inst<opc, !strconcat(NAME, " $dst, $src1, $src2"),
+                   (ops GPR:$dst, GPR:$src1, GPR:$src2)>;
+  def _ri : inst<opc, !strconcat(asmstr, " $dst, $src1, $src2"),
+                   (ops GPR:$dst, GPR:$src1, Imm:$src2)>;
+}
+
+// Define records for each instruction in the RR and RI formats.
+defm ADD : ri_inst<0b111, "add">;
+```
+
+This is equivalent to the following:
+
+```tablegen
+def ops;
+def GPR;
+def Imm;
+class inst <int opc, string asmstr, dag operandlist>;
+
+def SUB_rr : inst<0b111, !strconcat("ADD", " $dst, $src1, $src2"),
+                (ops GPR:$dst, GPR:$src1, GPR:$src2)>;
+def ADD_ri : inst<0b111, !strconcat("add", " $dst, $src1, $src2"),
+                   (ops GPR:$dst, GPR:$src1, Imm:$src2)>;
+```
+
+#### Subclass
+
+Sub class of `multiclass` has to be a `multiclass`, it will create all records defined in the `multiclass` and its base class with the same `NAME` argument. See example:
+
+```tablegen
+def ops;
+def GPR;
+def Imm;
+class inst <int opc, string asmstr, dag operandlist>;
+
+multiclass rr_inst <int opc, string asmstr> {
+  def _rr : inst<opc, !strconcat(asmstr, " $dst, $src1, $src2"),
+                   (ops GPR:$dst, GPR:$src1, GPR:$src2)>;
+}
+
+multiclass ri_inst <int opc, string asmstr> : rr_inst<opc, asmstr> {
+  def _ri : inst<opc, !strconcat(asmstr, " $dst, $src1, $src2"),
+                   (ops GPR:$dst, GPR:$src1, Imm:$src2)>;
+}
+
+defm ADD : ri_inst<0b111, "add">;
+```
+
+This is equivalent to the following:
+
+```tablegen
+def ops;
+def GPR;
+def Imm;
+class inst <int opc, string asmstr, dag operandlist>;
+
+def ADD_rr : inst<0b111, !strconcat("add", " $dst, $src1, $src2"),
+                (ops GPR:$dst, GPR:$src1, GPR:$src2)>;
+def ADD_ri : inst<0b111, !strconcat("add", " $dst, $src1, $src2"),
+                (ops GPR:$dst, GPR:$src1, Imm:$src2)>;
+```
+
 ## Basic procedure
 
 ### Example-AMDGPU
@@ -420,6 +534,12 @@ def any_fadd       : PatFrags<(ops node:$lhs, node:$rhs),
 And the following instruction definition in [X86InstrAVX512.td](llvm-project/llvm/lib/Target/X86/X86InstrAVX512.td)
 
 ```tablegen
+class I<bits<8> o, Format f, dag outs, dag ins, string asm,
+        list<dag> pattern, Domain d = GenericDomain>
+  : X86Inst<o, f, NoImm, outs, ins, asm, d> {
+  let Pattern = pattern;
+  let CodeSize = 3;
+}
 multiclass avx512_fp_scalar<bits<8> opc, string OpcodeStr,X86VectorVTInfo _,
                             SDPatternOperator OpNode, SDNode VecNode,
                             X86FoldableSchedWrite sched, bit IsCommutable> {
@@ -477,7 +597,7 @@ All instruction definition has sub-class or class of [`Instruction`](llvm-projec
    2. Original DAG mainly using operator defined in [TargetSelectionDAG.td](llvm-project/llvm/include/llvm/Target/TargetSelectionDAG.td) with sub-class or class of `class SDNode`
 6. `TSFlags`: Value of `TSFlags` field in `MCInstrDesc` c++ class
 
-#### Example
+#### Example1
 
 Using codes in [Cpu0InstrFormats.td](backend_tutorial/chapters/Chapter2/Cpu0InstrFormats.td) and [Cpu0InstrInfo.td](backend_tutorial/chapters/Chapter2/Cpu0InstrInfo.td) as example.
 
@@ -541,6 +661,35 @@ def store_a         : AlignedStore<store>;
 ```
 
 Here `load_a` and `store_a` is defined as [PatFrags](#patfrags), which simply added alignment check on the original `load` and `store`.
+
+#### Example2
+
+Using `V_SAT_PK_U8_I16` instruction as example, the definition can be found in 
+
+```tblgen 
+let SubtargetPredicate = isGFX9Plus in {
+  def V_SWAP_B32 : VOP1_Pseudo<"v_swap_b32", VOP_SWAP_I32, [], 1> {
+    let Constraints = "$vdst = $src1, $vdst1 = $src0";
+    let DisableEncoding = "$vdst1,$src1";
+    let SchedRW = [Write64Bit, Write64Bit];
+  }
+
+  let isReMaterializable = 1 in
+  defm V_SAT_PK_U8_I16    : VOP1Inst_t16<"v_sat_pk_u8_i16", VOP_I16_I32>;
+
+  let mayRaiseFPException = 0 in {
+    let OtherPredicates = [Has16BitInsts, NotHasTrue16BitInsts] in {
+      defm V_CVT_NORM_I16_F16 : VOP1Inst<"v_cvt_norm_i16_f16", VOP_I16_F16_SPECIAL_OMOD>;
+      defm V_CVT_NORM_U16_F16 : VOP1Inst<"v_cvt_norm_u16_f16", VOP_I16_F16_SPECIAL_OMOD>;
+    }
+    let OtherPredicates = [HasTrue16BitInsts] in {
+      defm V_CVT_NORM_I16_F16_t16 : VOP1Inst<"v_cvt_norm_i16_f16_t16", VOP_I16_F16_SPECIAL_OMOD_t16>;
+      defm V_CVT_NORM_U16_F16_t16 : VOP1Inst<"v_cvt_norm_u16_f16_t16", VOP_I16_F16_SPECIAL_OMOD_t16>;
+    }
+  } // End mayRaiseFPException = 0
+} // End SubtargetPredicate = isGFX9Plus
+```
+
 
 ### Process
 

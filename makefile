@@ -22,6 +22,9 @@ reset_hard:
 	git fetch && git reset --hard origin/$(BRANCH)
 
 PHONY += commit sync sub_pull
+# tablegen ===============================================================================
+gen_AMD_records:
+	llvm-tblgen -print-records -I llvm-project/llvm/include -I llvm-project/llvm/lib/Target/AMDGPU llvm-project/llvm/lib/Target/AMDGPU/AMDGPU.td > AMDrecords.td
 # build ==================================================================================
 config_clang:
 	cd llvm-project && cmake -G Ninja -S llvm -B build -DCMAKE_INSTALL_PREFIX=../bin -DCMAKE_BUILD_TYPE=Debug -DLLVM_ENABLE_PROJECTS='clang;lld;mlir' -DLLVM_TARGETS_TO_BUILD='X86' -DLLVM_PARALLEL_COMPILE_JOBS=32 -DLLVM_PARALLEL_LINK_JOBS=4
@@ -29,6 +32,8 @@ config_llvm:
 	cd llvm-project && cmake -G Ninja -S llvm -B build -DCMAKE_INSTALL_PREFIX=../bin -DCMAKE_BUILD_TYPE=Debug -DLLVM_ENABLE_PROJECTS='llvm;lld;mlir' -DLLVM_TARGETS_TO_BUILD='X86' -DLLVM_PARALLEL_COMPILE_JOBS=32 -DLLVM_PARALLEL_LINK_JOBS=4
 config_cpu0:
 	cd llvm-project && cmake -G Ninja -S llvm -B build -DCMAKE_INSTALL_PREFIX=../bin -DCMAKE_BUILD_TYPE=Debug -DLLVM_ENABLE_PROJECTS='clang;lld;mlir' -DLLVM_TARGETS_TO_BUILD='Cpu0;X86;Mips;ARM;;NVPTX;AMDGPU;RISCV' -DLLVM_PARALLEL_COMPILE_JOBS=32 -DLLVM_PARALLEL_LINK_JOBS=4
+config_debug:
+	cd llvm-project && cmake -G Ninja -S llvm -B build -DCMAKE_INSTALL_PREFIX=../bin -DCMAKE_BUILD_TYPE=Debug -DLLVM_ENABLE_PROJECTS='clang;lld' -DLLVM_TARGETS_TO_BUILD='X86;AMDGPU' -DLLVM_PARALLEL_COMPILE_JOBS=32 -DLLVM_PARALLEL_LINK_JOBS=32 -DLLVM_BUILD_TESTS=ON
 config_release:
 	cd llvm-project && cmake -G Ninja -S llvm -B build_release -DCMAKE_INSTALL_PREFIX=../bin -DCMAKE_BUILD_TYPE=Release -DLLVM_ENABLE_PROJECTS='clang;lld' -DLLVM_TARGETS_TO_BUILD='X86;AMDGPU' -DLLVM_PARALLEL_COMPILE_JOBS=32 -DLLVM_PARALLEL_LINK_JOBS=32 -DLLVM_BUILD_TESTS=ON
 build_release:

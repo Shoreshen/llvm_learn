@@ -5,4 +5,5 @@ build
 *.out
 *.s
 *.il
+/*.td
 param_map.txt
