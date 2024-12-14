@@ -517,69 +517,138 @@ This is used to define and self-written instruction selection function to match 
 
 ###### PatFrags
 
-Defined [here](llvm-project/llvm/include/llvm/Target/TargetSelectionDAG.td#L861) key parameters are:
+Defined [here](llvm-project/llvm/include/llvm/Target/TargetSelectionDAG.td#L927) key parameters are:
 
-1. `ops`: a DAG with form of `(ops, operand_1, operand_2, ...)`
-2. `frags`: list of DAG that it maps to
+1. `ops`: an accepting DAG format, with form of `(ops, node:$name_1, node:name_2, ...)`
+2. `frags`: list of DAGs that can be matched
 3. `pred`: check code for validation
+
+The way that `PatFrags` is used is as follow:
+
+1. Put the defined `PatFrags` in the accepting format, which is replace `ops` by the `PatFrags` name, and `node:$name_i` by [DAG operand](#dag-operand)
+2. Then it will replace of the `node:$name_i` node in all of DAGs in `frags` by the [DAG operand](#dag-operand)
+3. The replaced `frags` then will be use to match patterns 
 
 One of the example listed in [here](llvm-project/llvm/include/llvm/Target/TargetSelectionDAG.td#L1490) as follow:
 
 ```tablegen
+def node;
 def any_fadd       : PatFrags<(ops node:$lhs, node:$rhs),
                               [(strict_fadd node:$lhs, node:$rhs),
                                (fadd node:$lhs, node:$rhs)]>;
 ```
 
-And the following instruction definition in [X86InstrAVX512.td](llvm-project/llvm/lib/Target/X86/X86InstrAVX512.td)
+And the following instruction definition in [X86InstrFPStack.td](llvm-project/llvm/lib/Target/X86/X86InstrFPStack.td#L188)
 
 ```tablegen
-class I<bits<8> o, Format f, dag outs, dag ins, string asm,
-        list<dag> pattern, Domain d = GenericDomain>
-  : X86Inst<o, f, NoImm, outs, ins, asm, d> {
-  let Pattern = pattern;
-  let CodeSize = 3;
+let hasNoSchedulingInfo = 1 in {
+    defm ADD : FPBinary_rr<any_fadd>;
+    ...
 }
-multiclass avx512_fp_scalar<bits<8> opc, string OpcodeStr,X86VectorVTInfo _,
-                            SDPatternOperator OpNode, SDNode VecNode,
-                            X86FoldableSchedWrite sched, bit IsCommutable> {
-    let ExeDomain = _.ExeDomain, Uses = [MXCSR], mayRaiseFPException = 1 in {
-        ...
-        let isCodeGenOnly = 1, Predicates = [HasAVX512] in {
-            def rr : I< 
-                opc, MRMSrcReg, (outs _.FRC:$dst),
-                (ins _.FRC:$src1, _.FRC:$src2),
-                OpcodeStr#"\t{$src2, $src1, $dst|$dst, $src1, $src2}",
-                [(set _.FRC:$dst, (OpNode _.FRC:$src1, _.FRC:$src2))]
-            >,
-            Sched<[sched]> 
-            {
-                let isCommutable = IsCommutable;
-            }
-            ...
-        }
-    }
-}
+```
 
-multiclass avx512_binop_s_round<bits<8> opc, string OpcodeStr, SDPatternOperator OpNode,
-                                SDNode VecNode, SDNode RndNode,
-                                X86SchedWriteSizes sched, bit IsCommutable> {
-    defm SSZ : avx512_fp_scalar<opc, OpcodeStr#"ss", f32x_info, OpNode, VecNode,
-                                sched.PS.Scl, IsCommutable>,
+By tracing back the definition, we have:
+
+```tablegen
+class X86Inst<bits<8> opcod, Format f, ImmType i, dag outs, dag ins,
+              string AsmStr, Domain d = GenericDomain>
+    : Instruction {
     ...
 }
 
-defm VADD : avx512_binop_s_round<0x58, "vadd", any_fadd, X86fadds, X86faddRnds,
-                                 SchedWriteFAddSizes, 1>;
+class PseudoI<dag oops, dag iops, list<dag> pattern>
+    : X86Inst<0, Pseudo, NoImm, oops, iops, ""> {
+    let Pattern = pattern;
+}
+
+class FpI_<dag outs, dag ins, FPFormat fp, list<dag> pattern>
+    : PseudoI<outs, ins, pattern> {
+    ...
+}
+
+class FpIf32<dag outs, dag ins, FPFormat fp, list<dag> pattern> :
+             FpI_<outs, ins, fp, pattern>, Requires<[FPStackf32]>;
+
+multiclass FPBinary_rr<SDPatternOperator OpNode> {
+    // Register op register -> register
+    // These are separated out because they have no reversed form.
+    def _Fp32 : FpIf32<(outs RFP32:$dst), (ins RFP32:$src1, RFP32:$src2), TwoArgFP,
+        [(set RFP32:$dst, (OpNode RFP32:$src1, RFP32:$src2))]>;
+    ...
+}
+
+let hasNoSchedulingInfo = 1 in {
+    defm ADD : FPBinary_rr<any_fadd>;
+    ...
+}
 ```
 
-From the above example we can see that `any_fadd` is used in the `pattern` parameter of [Instruction](#instruction) definition as `[(set _.FRC:$dst, (OpNode _.FRC:$src1, _.FRC:$src2))]`.
+It is not hard to find the `Pattern` in the final instruction definition is `[(set RFP32:$dst, (any_fadd RFP32:$src1, RFP32:$src2))]`, then
 
-The `OpNode` parameter is the `any_fadd` instance, and it will match both `(strict_fadd _.FRC:$src1, _.FRC:$src1)` pattern and `(fadd _.FRC:$src1, _.FRC:$src1)`
+1. `(any_fadd RFP32:$src1, RFP32:$src2)` is an accepting format, which corresponding `RFP32:$src1` to `node:$lhs` and `RFP32:$src2` to `node:$rhs` respectively
+2. The `frags` of `any_fadd` will replace `node:$lhs` and `node:$rhs` by `RFP32:$src1` and `RFP32:$src2`, results as `[(strict_fadd RFP32:$lhs, RFP32:$rhs), (fadd RFP32:$lhs, RFP32:$rhs)]`
+3. The matching pattern of the instruction will internally splite into two patterns, which are  `(set RFP32:$dst, (strict_fadd RFP32:$src1, RFP32:$src2))` and `(set RFP32:$dst, (fadd RFP32:$src1, RFP32:$src2))`.
+   This means both of the above patterns will be matched by the instruction
+
+###### PatFrag
+
+defined [here](llvm-project/llvm/include/llvm/Target/TargetSelectionDAG.td#L1022), just a convenient definition for [PatFrags](#patfrags) with 1 operand.
 
 ###### PatLeaf
 
-defined [here](llvm-project/llvm/include/llvm/Target/TargetSelectionDAG.td#L965), just a convenient definition for [PatFrags](#patfrags) with 0 operand.
+defined [here](llvm-project/llvm/include/llvm/Target/TargetSelectionDAG.td#L1034), just a convenient definition for [PatFrags](#patfrags) with 0 operand.
+
+###### Pat
+
+defined [here](llvm-project/llvm/include/llvm/Target/TargetSelectionDAG.td#L2067), this is used to add extra pattern to match instructions.
+
+The key parameters are:
+
+1. `pattern`: DAG to match
+2. `result`: matched form of instruction
+
+For example we defined an simple `ADD` instruction (Note the small add is ISD DAG node defined in [TargetSelectionDAG.td](llvm-project/llvm/include/llvm/Target/TargetSelectionDAG.td#402)):
+
+```tablegen
+def Frags : PatFrags<
+    (ops node:$a, node:$b), 
+    [
+        (add node:$a, node$:b), 
+        (mul node:$a, (div (add node:$a, node:$b), node:$a))
+    ]
+>;
+
+def: Pat<(Frags $a, $b), (ADD $a, $b)>;
+```
+
+We would like to add pattern `(set Reg:$dst, (mul reg_or_imm:$src0, (div (add reg_or_imm:$src0, reg_or_imm:$src1), reg_or_imm:$src0)))` for this instruction, then we can use `Pat`:
+
+```tablegen
+def : Pat<(set Reg:$dst, (mul reg_or_imm:$src0, (div (add reg_or_imm:$src0, reg_or_imm:$src1), reg_or_imm:$src0))),(ADD reg_or_imm:$src0, reg_or_imm:$src1)>;
+```
+
+Also [`PatFrags`](#patfrags) and [`Patfrag`](#Patfrag) can be used in `Pat` to simplify the pattern matching, the following examples are equivalent:
+
+```tablegen
+def Frag1: PatFrag<(ops node:$a, node:$b), (add node:$a, node:$b)>;
+def Frag2: PatFrag<(ops node:$a, node:$b), (mul (div node:$a, node:$b), node:$a)>;
+def: Pat<(Frag1 RegImm:$a, RegImm:$b), (ADD RegImm:$a, RegImm:$b)>;
+def: Pat<(Frag2 RegImm:$a, RegImm:$b), (ADD RegImm:$a, RegImm:$b)>;
+```
+
+And
+
+```tablegen
+def Frags: PatFrags<
+    (ops node:$a, node:$b), 
+    [
+        (add node:$a, node$:b), 
+        (mul node:$a, (div (add node:$a, node:$b), node:$a))
+    ]
+>;
+
+def: Pat<(Frags RegImm:$a, RegImm:$b), (ADD RegImm:$a, RegImm:$b)>;
+```
 
 #### Instruction
 
@@ -666,29 +735,10 @@ Here `load_a` and `store_a` is defined as [PatFrags](#patfrags), which simply ad
 
 Using `V_SAT_PK_U8_I16` instruction as example, the definition can be found in 
 
-```tblgen 
-let SubtargetPredicate = isGFX9Plus in {
-  def V_SWAP_B32 : VOP1_Pseudo<"v_swap_b32", VOP_SWAP_I32, [], 1> {
-    let Constraints = "$vdst = $src1, $vdst1 = $src0";
-    let DisableEncoding = "$vdst1,$src1";
-    let SchedRW = [Write64Bit, Write64Bit];
-  }
+questions 
 
-  let isReMaterializable = 1 in
-  defm V_SAT_PK_U8_I16    : VOP1Inst_t16<"v_sat_pk_u8_i16", VOP_I16_I32>;
-
-  let mayRaiseFPException = 0 in {
-    let OtherPredicates = [Has16BitInsts, NotHasTrue16BitInsts] in {
-      defm V_CVT_NORM_I16_F16 : VOP1Inst<"v_cvt_norm_i16_f16", VOP_I16_F16_SPECIAL_OMOD>;
-      defm V_CVT_NORM_U16_F16 : VOP1Inst<"v_cvt_norm_u16_f16", VOP_I16_F16_SPECIAL_OMOD>;
-    }
-    let OtherPredicates = [HasTrue16BitInsts] in {
-      defm V_CVT_NORM_I16_F16_t16 : VOP1Inst<"v_cvt_norm_i16_f16_t16", VOP_I16_F16_SPECIAL_OMOD_t16>;
-      defm V_CVT_NORM_U16_F16_t16 : VOP1Inst<"v_cvt_norm_u16_f16_t16", VOP_I16_F16_SPECIAL_OMOD_t16>;
-    }
-  } // End mayRaiseFPException = 0
-} // End SubtargetPredicate = isGFX9Plus
-```
+1. instruction defined without matching Pattern
+2. Using ValueType as DAG node type
 
 
 ### Process

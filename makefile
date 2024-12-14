@@ -24,7 +24,7 @@ reset_hard:
 PHONY += commit sync sub_pull
 # tablegen ===============================================================================
 gen_AMD_records:
-	llvm-tblgen -print-records -I llvm-project/llvm/include -I llvm-project/llvm/lib/Target/AMDGPU llvm-project/llvm/lib/Target/AMDGPU/AMDGPU.td > AMDrecords.td
+	llvm-project/build_release/bin/llvm-tblgen -print-records -I llvm-project/llvm/include -I llvm-project/llvm/lib/Target/AMDGPU llvm-project/llvm/lib/Target/AMDGPU/AMDGPU.td > AMDrecords.td
 # build ==================================================================================
 config_clang:
 	cd llvm-project && cmake -G Ninja -S llvm -B build -DCMAKE_INSTALL_PREFIX=../bin -DCMAKE_BUILD_TYPE=Debug -DLLVM_ENABLE_PROJECTS='clang;lld;mlir' -DLLVM_TARGETS_TO_BUILD='X86' -DLLVM_PARALLEL_COMPILE_JOBS=32 -DLLVM_PARALLEL_LINK_JOBS=4
