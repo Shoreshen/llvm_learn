@@ -813,6 +813,60 @@ Some points:
 2. `t12` depends on `t4` may be because if alias happens, `%ir.a.addr` and `%ir.b.addr` would pointing at the same address, then the order of storing matters
 3. `t19` is used to synchronize the load of `%ir.a.addr`, `%ir.b.addr` and `%ir.y.addr`
 
+Adjustment needed
+
+1. In function [`SITargetLowering`](llvm-project/llvm/lib/Target/AMDGPU/SIISelLowering.cpp#L84), add `RegClassForVT` entry for type `v2i8` with `AMDGPU::VGPR_16RegClass`
+2. In function [`getVectorTypeBreakdownForCallingConv`](llvm-project/llvm/lib/Target/AMDGPU/SIISelLowering.cpp#L1084), add ability to return `RegisterVT` of `v2i8`
+3. In function [`getRegisterTypeForCallingConv`](llvm-project/llvm/lib/Target/AMDGPU/SIISelLowering.cpp#L1029), add ability to retrun `v2i8`
+4. Add `v2i8` for [`Reg16Types`](llvm-project/llvm/lib/Target/AMDGPU/SIRegisterInfo.td#586)
+```
+SelectionDAG has 26 nodes:
+  t0: ch,glue = EntryToken
+            t2: i16,ch = CopyFromReg # D:1 t0, Register:i16 %8
+          t6: i16 = smax # D:1 t2, Constant:i16<0>
+        t8: i16 = smin # D:1 t6, Constant:i16<255>
+      t13: v2i16 = insert_vector_elt # D:1 undef:v2i16, t8, Constant:i32<0>
+          t4: i16,ch = CopyFromReg # D:1 t0, Register:i16 %9
+        t9: i16 = smax # D:1 t4, Constant:i16<0>
+      t10: i16 = smin # D:1 t9, Constant:i16<255>
+    t15: v2i16 = insert_vector_elt # D:1 t13, t10, Constant:i32<1>
+  t16: v2i8 = truncate # D:1 t15
+      t17: i8 = extract_vector_elt # D:1 t16, Constant:i32<0>
+    t19: i16 = any_extend # D:1 t17
+  t22: ch,glue = CopyToReg # D:1 t0, Register:i16 $vgpr0, t19
+      t18: i8 = extract_vector_elt # D:1 t16, Constant:i32<1>
+    t20: i16 = any_extend # D:1 t18
+  t24: ch,glue = CopyToReg # D:1 t22, Register:i16 $vgpr1, t20, t22:1
+  t25: ch = RET_GLUE t24, Register:i16 $vgpr0, Register:i16 $vgpr1, t24:1
+```
+
+```
+SelectionDAG has 19 nodes:
+  t0: ch,glue = EntryToken
+    t4: i16,ch = CopyFromReg # D:1 t0, Register:i16 %9
+  t28: i16 = SMED3 # D:1 t4, Constant:i16<0>, Constant:i16<255>
+          t2: i16,ch = CopyFromReg # D:1 t0, Register:i16 %8
+        t29: i16 = SMED3 # D:1 t2, Constant:i16<0>, Constant:i16<255>
+      t49: i16 = and # D:1 t29, Constant:i16<255>
+      t42: i16 = shl # D:1 t28, Constant:i16<8>
+    t43: i16 = or # D:1 t49, t42
+  t22: ch,glue = CopyToReg # D:1 t0, Register:i16 $vgpr0, t43
+    t52: i16 = and # D:1 t28, Constant:i16<255>
+  t24: ch,glue = CopyToReg # D:1 t22, Register:i16 $vgpr1, t52, t22:1
+  t25: ch = RET_GLUE t24, Register:i16 $vgpr0, Register:i16 $vgpr1, t24:1
+```
+
+```
+t28: i16 = SMED3 # D:1 t4, Constant:i16<0>, Constant:i16<255>
+t29: i16 = SMED3 # D:1 t2, Constant:i16<0>, Constant:i16<255>
+t49: i16 = and # D:1 t29, Constant:i16<255>
+t42: i16 = shl # D:1 t28, Constant:i16<8>
+t43: i16 = or # D:1 t49, t42
+```
+
+1. Share drawio
+2. comment on v_sat_pk
+3. read development guide
 
 ## Register allocation
 

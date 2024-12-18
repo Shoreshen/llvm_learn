@@ -20,8 +20,12 @@ sync: commit
 	git push -u origin $(BRANCH)
 reset_hard:
 	git fetch && git reset --hard origin/$(BRANCH)
+apply_diff:
+	cd llvm-project/ && git apply ../llvm-modify.patch
+save_diff:
+	cd llvm-project/ && git diff > ../llvm-modify.patch
 
-PHONY += commit sync sub_pull
+PHONY += commit sync sub_pull apply_diff save_diff
 # tablegen ===============================================================================
 gen_AMD_records:
 	llvm-project/build_release/bin/llvm-tblgen -print-records -I llvm-project/llvm/include -I llvm-project/llvm/lib/Target/AMDGPU llvm-project/llvm/lib/Target/AMDGPU/AMDGPU.td > AMDrecords.td
@@ -33,9 +37,9 @@ config_llvm:
 config_cpu0:
 	cd llvm-project && cmake -G Ninja -S llvm -B build -DCMAKE_INSTALL_PREFIX=../bin -DCMAKE_BUILD_TYPE=Debug -DLLVM_ENABLE_PROJECTS='clang;lld;mlir' -DLLVM_TARGETS_TO_BUILD='Cpu0;X86;Mips;ARM;;NVPTX;AMDGPU;RISCV' -DLLVM_PARALLEL_COMPILE_JOBS=32 -DLLVM_PARALLEL_LINK_JOBS=4
 config_debug:
-	cd llvm-project && cmake -G Ninja -S llvm -B build -DCMAKE_INSTALL_PREFIX=../bin -DCMAKE_BUILD_TYPE=Debug -DLLVM_ENABLE_PROJECTS='clang;lld' -DLLVM_TARGETS_TO_BUILD='X86;AMDGPU' -DLLVM_PARALLEL_COMPILE_JOBS=32 -DLLVM_PARALLEL_LINK_JOBS=32 -DLLVM_BUILD_TESTS=ON
+	cd llvm-project && cmake -G Ninja -S llvm -B build -DCMAKE_INSTALL_PREFIX=../bin -DCMAKE_BUILD_TYPE=Debug -DLLVM_ENABLE_PROJECTS='clang;lld' -DLLVM_TARGETS_TO_BUILD='X86;AMDGPU' -DLLVM_PARALLEL_COMPILE_JOBS=32 -DLLVM_PARALLEL_LINK_JOBS=32 -DLLVM_PARALLEL_LINK_JOBS=4 -DLLVM_BUILD_TESTS=ON -DLLVM_ENABLE_ASSERTIONS=ON
 config_release:
-	cd llvm-project && cmake -G Ninja -S llvm -B build_release -DCMAKE_INSTALL_PREFIX=../bin -DCMAKE_BUILD_TYPE=Release -DLLVM_ENABLE_PROJECTS='clang;lld' -DLLVM_TARGETS_TO_BUILD='X86;AMDGPU' -DLLVM_PARALLEL_COMPILE_JOBS=32 -DLLVM_PARALLEL_LINK_JOBS=32 -DLLVM_BUILD_TESTS=ON
+	cd llvm-project && cmake -G Ninja -S llvm -B build_release -DCMAKE_INSTALL_PREFIX=../bin -DCMAKE_BUILD_TYPE=Release -DLLVM_ENABLE_PROJECTS='clang;lld' -DLLVM_TARGETS_TO_BUILD='X86;AMDGPU' -DLLVM_PARALLEL_COMPILE_JOBS=32 -DLLVM_PARALLEL_LINK_JOBS=32 -DLLVM_BUILD_TESTS=ON -DLLVM_ENABLE_ASSERTIONS=ON
 build_release:
 	cd llvm-project/build_release && ninja
 build:
@@ -91,6 +95,8 @@ dump_mytest_comp:mytest_comp.out
 
 test.ll: ./test/test.c # has to add -O3, otherwise machine scheduler will not invoke
 	./llvm-project/build/bin/clang -S -emit-llvm -o $@ $< -O3
+run_test:
+	llvm-project/build_release/bin/llc -mtriple=amdgcn -mcpu=gfx900 ./test/v_sat_pk_u8_i16.ll
 
 PHONY += view_dag dump_mytest dump_mytest_comp
 # AMDtest ================================================================================
