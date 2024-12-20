@@ -6,4 +6,6 @@ build
 *.s
 *.il
 /*.td
+/Internal_note
+/Internal_tests
 param_map.txt

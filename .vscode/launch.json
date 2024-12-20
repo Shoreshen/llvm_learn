@@ -168,6 +168,36 @@
             ]
         },
         {
+            "name": "frame.ll",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/llvm-project/build/bin/opt",
+            "args": [
+                // "-debug",
+                // "-march=arm",
+                "-mcpu=gfx1030",
+                "--amdgpu-attributor",
+                "./test/frame.ll"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "为 gdb 启用整齐打印",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "将反汇编风格设置为 Intel",
+                    "text": "-gdb-set disassembly-flavor intel",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
             "name": "backend-AMD",
             "type": "cppdbg",
             "request": "launch",
@@ -179,6 +209,91 @@
                 "-fast-isel=0",
                 "testAMD.ll",
                 "-o","testAMD.il"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "为 gdb 启用整齐打印",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "将反汇编风格设置为 Intel",
+                    "text": "-gdb-set disassembly-flavor intel",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
+            "name": "commutable",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/llvm-project/build/bin/llc",
+            "args": [
+                "-mtriple=amdgcn",
+                "-mcpu=gfx1030",
+                "-run-pass=machine-cse",
+                "Internal_tests/commute-op-sel.mir"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "为 gdb 启用整齐打印",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "将反汇编风格设置为 Intel",
+                    "text": "-gdb-set disassembly-flavor intel",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
+            "name": "backend-AMD: current ll",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/llvm-project/build/bin/llc",
+            "args": [
+                "-mtriple=amdgcn",
+                "-mcpu=gfx1030",
+                "${file}"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "为 gdb 启用整齐打印",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "将反汇编风格设置为 Intel",
+                    "text": "-gdb-set disassembly-flavor intel",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
+            "name": "backend-X86: current ll",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/llvm-project/build/bin/llc",
+            "args": [
+                "-mtriple=x86_64-unknown-unknown", 
+                "-mattr=+bmi,+bmi2",
+                "${file}"
             ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
